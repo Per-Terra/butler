@@ -1,0 +1,7 @@
+*.code-workspace
+
+/src/cache/
+/src/packages/
+/src/files.csv
+/src/packages.csv
+/test/
