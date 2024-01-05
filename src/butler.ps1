@@ -73,6 +73,8 @@ if ($Command -notin $Commands.Values.Key) {
 
 . (Join-Path -Path $PSScriptRoot -ChildPath './lib/Get-Sha256.ps1')
 
+$ConsoleWidth = $Host.UI.RawUI.BufferSize.Width
+
 $RootDirectory = Split-Path -Path $PSScriptRoot -Parent
 $SourcesPath = Join-Path -Path $PSScriptRoot -ChildPath 'sources.yaml'
 $ManagedFilesPath = Join-Path -Path $PSScriptRoot -ChildPath 'files.csv'
@@ -137,7 +139,7 @@ if ($Command -eq $Commands.update.Key) {
 }
 
 if (-not $PackageManifests) {
-  Write-Host 'パッケージを読み込んでいます...' -NoNewline
+  Write-Host -NoNewline 'パッケージを読み込んでいます...'
 
   $PackageManifests = @{}
 
@@ -356,8 +358,9 @@ function Split-PackageRelationShip {
   }
 }
 
-if ($Command -eq $Commands.install.Key) {
-  if ($args.Count -lt 2) {
+if ($Command -eq $Commands.install.Key -or ($Command -eq $Commands.upgrade.Key)) {
+  $upgrade = $Command -eq $Commands.upgrade.Key
+  if (-not $upgrade -and ($args.Count -lt 2)) {
     Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
     Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 install <パッケージ名>[=<バージョン>] [<パッケージ名>[=<バージョン>]]...'
     exit 1
@@ -366,7 +369,14 @@ if ($Command -eq $Commands.install.Key) {
   $packagesToInstall = @()
   $dependedPackages = @()
 
-  $args[1..($args.Count - 1)] | Sort-Object -Unique | ForEach-Object {
+  if ($upgrade -and ($args.Count -lt 2)) {
+    $specifiedPackages = $script:managedPackages | Where-Object { $_.Status -eq 'Installed' -and $_.IsVersionPinned -ne 'True' } | Select-Object -ExpandProperty Identifier
+  }
+  else {
+    $specifiedPackages = $args[1..($args.Count - 1)] | Sort-Object -Unique
+  }
+
+  $specifiedPackages | ForEach-Object {
     $packageIdentifier = $_
     $packageVersion = $null
     if ($packageIdentifier.Contains('=')) {
@@ -613,8 +623,8 @@ if ($Command -eq $Commands.install.Key) {
           }
           else {
             $isDependencyResolved = $false
-            $package = $PackageManifests.GetEnumerator() | Where-Object { $_.Key -eq $dependency.Identifier } | Select-Object -First 1
-            if (-not $package) {
+            $dependedPackage = $PackageManifests.GetEnumerator() | Where-Object { $_.Key -eq $dependency.Identifier } | Select-Object -First 1
+            if (-not $dependedPackage) {
               Write-Host ' 失敗'
               Write-Host -ForegroundColor Red "依存しているパッケージが見つかりません: $($_.Identifier)"
               exit 1
@@ -624,13 +634,13 @@ if ($Command -eq $Commands.install.Key) {
                 '<<' {
                   $dependedPackages = @([pscustomobject]@{
                       Identifier          = $dependency.Identifier
-                      InstallableVersions = @($package.Value.psobject.Properties.Name | Where-Object { $_ -lt $dependency.Version })
+                      InstallableVersions = @($dependedPackage.Value.psobject.Properties.Name | Where-Object { $_ -lt $dependency.Version })
                     }) + $dependedPackages
                 }
                 '<=' {
                   $dependedPackages = @([pscustomobject]@{
                       Identifier          = $dependency.Identifier
-                      InstallableVersions = @($package.Value.psobject.Properties.Name | Where-Object { $_ -le $dependency.Version })
+                      InstallableVersions = @($dependedPackage.Value.psobject.Properties.Name | Where-Object { $_ -le $dependency.Version })
                     }) + $dependedPackages
                 }
                 '=' {
@@ -642,19 +652,19 @@ if ($Command -eq $Commands.install.Key) {
                 '>=' {
                   $dependedPackages = @([pscustomobject]@{
                       Identifier          = $dependency.Identifier
-                      InstallableVersions = @($package.Value.psobject.Properties.Name | Where-Object { $_ -ge $dependency.Version })
+                      InstallableVersions = @($dependedPackage.Value.psobject.Properties.Name | Where-Object { $_ -ge $dependency.Version })
                     }) + $dependedPackages
                 }
                 '>>' {
                   $dependedPackages = @([pscustomobject]@{
                       Identifier          = $dependency.Identifier
-                      InstallableVersions = @($package.Value.psobject.Properties.Name | Where-Object { $_ -gt $dependency.Version })
+                      InstallableVersions = @($dependedPackage.Value.psobject.Properties.Name | Where-Object { $_ -gt $dependency.Version })
                     }) + $dependedPackages
                 }
               }
               if (-not ($dependedPackages | Where-Object { $_.Identifier -eq $dependency.Identifier -and $_.InstallableVersions })) {
                 Write-Host ' 失敗'
-                Write-Host -ForegroundColor Red "$($package.Identifier) ($($package.Version)) の依存関係を解決できません: $($dependency.Identifier) ($($dependency.Operator) $($dependency.Version))"
+                Write-Host -ForegroundColor Red "$($dependedPackage.Identifier) ($($dependedPackage.Version)) の依存関係を解決できません: $($dependency.Identifier) ($($dependency.Operator) $($dependency.Version))"
                 Write-Host -ForegroundColor Red 'インストールしようとしている他のパッケージが異なるバージョンを要求している可能性があります'
                 exit 1
               }
@@ -662,7 +672,7 @@ if ($Command -eq $Commands.install.Key) {
             else {
               $dependedPackages += [pscustomobject]@{
                 Identifier          = $dependency.Identifier
-                InstallableVersions = @($package.Value.psobject.Properties.Name)
+                InstallableVersions = @($dependedPackage.Value.psobject.Properties.Name)
               }
             }
           }
@@ -674,9 +684,9 @@ if ($Command -eq $Commands.install.Key) {
   $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object {
     $packageIdentifier = $_.Identifier
     $packageVersion = $_.Version
-    $package = $PackageManifests.$packageIdentifier.$packageVersion
-    if ($package.Depends) {
-      $package.Depends | ForEach-Object {
+    $depends = $PackageManifests.$packageIdentifier.$packageVersion.Depends
+    if ($depends) {
+      $depends | ForEach-Object {
         $dependency = $_ | Split-PackageRelationShip
         if ($dependency.Version) {
           switch ($dependency.Operator) {
@@ -763,15 +773,14 @@ if ($Command -eq $Commands.install.Key) {
 
   if ($dependedPackages.Count -gt 0) {
     Write-Host '以下の追加パッケージがインストールされます:'
-    $consoleWidth = $Host.UI.RawUI.BufferSize.Width
-    $consoleWidthRemain = $consoleWidth - 2
+    $consoleWidthRemain = $ConsoleWidth - 2
     Write-Host -NoNewline '  '
     $dependedPackages | Sort-Object -Property Identifier | ForEach-Object {
       $consoleWidthRemain -= $_.Identifier.Length
       if ($consoleWidthRemain -lt 0) {
         Write-Host
         Write-Host -NoNewline '  '
-        $consoleWidthRemain = $consoleWidth - $_.Identifier.Length - 2
+        $consoleWidthRemain = $ConsoleWidth - $_.Identifier.Length - 2
       }
       Write-Host -NoNewline "$($_.Identifier) "
       $consoleWidthRemain -= 1
@@ -781,9 +790,13 @@ if ($Command -eq $Commands.install.Key) {
 
   $installedSize = 0
 
-  Write-Host '以下のパッケージが新たにインストールされます:'
-  $consoleWidth = $Host.UI.RawUI.BufferSize.Width
-  $consoleWidthRemain = $consoleWidth - 2
+  if ($upgrade) {
+    Write-Host '以下のパッケージが更新されます:'
+  }
+  else {
+    Write-Host '以下のパッケージが新たにインストールされます:'
+  }
+  $consoleWidthRemain = $ConsoleWidth - 2
   Write-Host -NoNewline '  '
   @($dependedPackages) + @($packagesToInstall) | Sort-Object -Property Identifier | ForEach-Object {
     $installedSize += $PackageManifests.$($_.Identifier).$($_.InstallableVersions[0]).InstalledSize
@@ -791,7 +804,7 @@ if ($Command -eq $Commands.install.Key) {
     if ($consoleWidthRemain -lt 0) {
       Write-Host
       Write-Host -NoNewline '  '
-      $consoleWidthRemain = $consoleWidth - $_.Identifier.Length - 2
+      $consoleWidthRemain = $ConsoleWidth - $_.Identifier.Length - 2
     }
     Write-Host -NoNewline "$($_.Identifier) "
     $consoleWidthRemain -= 1
@@ -826,16 +839,17 @@ if ($Command -eq $Commands.install.Key) {
 
     $installedPackage = $script:managedPackages | Where-Object { $_.Identifier -eq $packageIdentifier -and ($_.Status -eq 'Installed') } | Select-Object -First 1
     if ($installedPackage) {
-      $manifest = $PackageManifests.$packageIdentifier.($installedPackage.Version)
-      & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
+      $installedPackageVersion = $installedPackage.Version
+      $installedPackageManifest = $PackageManifests.$packageIdentifier.$installedPackageVersion
+      & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Version $installedPackageVersion -Manifest $installedPackageManifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
       $managedFiles = @(Import-Csv -LiteralPath $ManagedFilesPath)
       if (
         $purge -or (
           -not ($managedFiles | Where-Object { $_.Identifier -eq $packageIdentifier }) -and
-          -not ($manifest.ConfFiles -and ($manifest.ConfFiles | ForEach-Object { Test-Path (Join-Path -Path $RootDirectory -ChildPath $_) } | Where-Object { $_ -eq $true }))
+          -not ($installedPackageManifest.ConfFiles -and ($installedPackageManifest.ConfFiles | ForEach-Object { Test-Path (Join-Path -Path $RootDirectory -ChildPath $_) } | Where-Object { $_ -eq $true }))
         )
       ) {
-        $script:managedPackages = @($script:managedPackages | Where-Object { $_.Identifier -ne $packageIdentifier -and ($_.Status -ne 'Installed') })
+        $script:managedPackages = @($script:managedPackages | Where-Object { -not ($_.Identifier -eq $packageIdentifier -and ($_.Status -eq 'Installed')) })
       }
       else {
         $script:managedPackages | Where-Object { $_.Identifier -eq $packageIdentifier -and ($_.Status -eq 'Installed') } | ForEach-Object {
@@ -868,16 +882,17 @@ if ($Command -eq $Commands.install.Key) {
 
     $installedPackage = $script:managedPackages | Where-Object { $_.Identifier -eq $packageIdentifier -and ($_.Status -eq 'Installed') } | Select-Object -First 1
     if ($installedPackage) {
-      $manifest = $PackageManifests.$packageIdentifier.($installedPackage.Version)
-      & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
+      $installedPackageVersion = $installedPackage.Version
+      $installedPackageManifest = $PackageManifests.$packageIdentifier.$installedPackageVersion
+      & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Version $installedPackageVersion -Manifest $installedPackageManifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
       $managedFiles = @(Import-Csv -LiteralPath $ManagedFilesPath)
       if (
         $purge -or (
           -not ($managedFiles | Where-Object { $_.Identifier -eq $packageIdentifier }) -and
-          -not ($manifest.ConfFiles -and ($manifest.ConfFiles | ForEach-Object { Test-Path (Join-Path -Path $RootDirectory -ChildPath $_) } | Where-Object { $_ -eq $true }))
+          -not ($installedPackageManifest.ConfFiles -and ($installedPackageManifest.ConfFiles | ForEach-Object { Test-Path (Join-Path -Path $RootDirectory -ChildPath $_) } | Where-Object { $_ -eq $true }))
         )
       ) {
-        $script:managedPackages = @($script:managedPackages | Where-Object { $_.Identifier -ne $packageIdentifier -and ($_.Status -ne 'Installed') })
+        $script:managedPackages = @($script:managedPackages | Where-Object { -not ($_.Identifier -eq $packageIdentifier -and ($_.Status -eq 'Installed')) })
       }
       else {
         $script:managedPackages | Where-Object { $_.Identifier -eq $packageIdentifier -and ($_.Status -eq 'Installed') } | ForEach-Object {
@@ -979,9 +994,9 @@ if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
   $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object {
     $packageIdentifier = $_.Identifier
     $packageVersion = $_.Version
-    $manifest = $PackageManifests.$packageIdentifier.$packageVersion
-    if ($manifest.Depends) {
-      $manifest.Depends | ForEach-Object {
+    $depends = $PackageManifests.$packageIdentifier.$packageVersion.Depends
+    if ($depends) {
+      $depends | ForEach-Object {
         $dependency = $_ | Split-PackageRelationShip
         foreach ($packageToRemove in $packagesToRemove) {
           if ($dependency.Identifier -eq $packageToRemove -and $packageIdentifier -notin $packagesToRemove) {
@@ -1003,15 +1018,14 @@ if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
   else {
     Write-Host '以下のパッケージが削除されます:'
   }
-  $consoleWidth = $Host.UI.RawUI.BufferSize.Width
-  $consoleWidthRemain = $consoleWidth - 2
+  $consoleWidthRemain = $ConsoleWidth - 2
   Write-Host -NoNewline '  '
   $packagesToRemove | Sort-Object | ForEach-Object {
-    $consoleWidthRemain -= $_.Length
+    $ConsoleWidthRemain -= $_.Length
     if ($consoleWidthRemain -lt 0) {
       Write-Host
       Write-Host -NoNewline '  '
-      $consoleWidthRemain = $consoleWidth - $_.Length - 2
+      $consoleWidthRemain = $ConsoleWidth - $_.Length - 2
     }
     Write-Host -NoNewline "$_ "
     $consoleWidthRemain -= 1
@@ -1059,14 +1073,5 @@ if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
   catch {
     Write-Error -Message "ファイルの書き込みに失敗しました: $managedPackagesPath"
     throw
-  }
-}
-
-if ($Command -eq $Commands.upgrade.Key) {
-  $installedPackages = $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | Sort-Object -Property Identifier -Unique
-
-  $installedPackages | ForEach-Object {
-    $packageIdentifier = $_.Identifier
-    . $MyInvocation.MyCommand.Path install $packageIdentifier
   }
 }
