@@ -154,7 +154,7 @@ foreach ($sourceFile in $Manifest.Files) {
     }
 
     # rikky氏のAmazonっぽいからのダウンロードに対応
-    if ($_ -match 'https://hazumurhythm\.com/php/amazon_download\.php\?name=(.+)') {
+    if ($sourceUrl -match 'https://hazumurhythm\.com/php/amazon_download\.php\?name=(.+)') {
       $id = $Matches[1]
       $params.Add('Headers', @{ Referer = "https://hazumurhythm.com/wev/amazon/?script=$id" })
     }
