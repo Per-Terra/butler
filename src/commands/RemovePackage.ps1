@@ -2,6 +2,8 @@
 param (
   [Parameter(Mandatory = $true)]
   [string]$Identifier,
+  [Parameter(Mandatory = $false)]
+  [string]$Version,
   [Parameter(Mandatory = $true)]
   [pscustomobject]$Manifest,
   [Parameter(Mandatory = $true)]
@@ -15,10 +17,10 @@ param (
 )
 
 if ($Purge) {
-  Write-Host "$Identifier を完全に削除しています..."
+  Write-Host "$Identifier ($Version) を完全に削除しています..."
 }
 else {
-  Write-Host "$Identifier を削除しています..."
+  Write-Host "$Identifier ($Version) を削除しています..."
 }
 
 . (Join-Path -Path $PSScriptRoot -ChildPath '../lib/Get-Sha256.ps1')
