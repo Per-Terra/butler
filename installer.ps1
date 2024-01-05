@@ -1,12 +1,12 @@
 $ZipUrl = 'https://codeload.github.com/Per-Terra/butler/zip/refs/heads/main'
 $ZipFileName = 'butler-main.zip'
 $ZipFilePath = Join-Path $env:TEMP $ZipFileName
-$ExtractPath = Join-Path $env:TEMP 'butler-main'
-$InstallPath = Join-Path -Path (Get-Location) -ChildPath '.butler'
+$ExtractPath = Join-Path $env:TEMP 'butler-main/'
+$InstallPath = Join-Path -Path (Get-Location) -ChildPath '.butler/'
 
 Write-Host 'BUtlerをインストールしています...'
 
-if (Test-Path -LiteralPath $InstallPath) {
+if (Test-Path -LiteralPath $InstallPath -PathType Container) {
   Write-Host '.butler フォルダーが既に存在します'
   Write-Host -NoNewline '上書きしますか? [Y/n]'
   do {
@@ -17,9 +17,12 @@ if (Test-Path -LiteralPath $InstallPath) {
     exit 0
   }
 }
+else {
+  $null = New-Item -Path $InstallPath -ItemType Directory -Force
+}
 
 $isZipDownloaded = $false
-if (Test-Path -LiteralPath $ZipFilePath) {
+if (Test-Path -LiteralPath $ZipFilePath -PathType Leaf) {
   Write-Host 'ZIPアーカイブが既に存在します'
   Write-Host -NoNewline '再ダウンロードしますか? [y/N]'
   do {
@@ -52,8 +55,7 @@ if (Test-Path -LiteralPath $ExtractPath -PathType Container) {
 Expand-Archive -Path $ZipFilePath -DestinationPath $ExtractPath
 
 Write-Host 'ファイルをコピーしています...'
-Get-ChildItem (Join-Path -Path $ExtractPath -ChildPath 'butler-main/src') -Recurse -File |
-Copy-Item -Destination $InstallPath -Recurse
+Copy-Item -Path (Join-Path -Path $ExtractPath -ChildPath 'butler-main/src/*') -Destination $InstallPath -Recurse -Force
 
 Write-Host 'ショートカットを作成しています...'
 $ShortcutPath = 'BUtler.lnk'
