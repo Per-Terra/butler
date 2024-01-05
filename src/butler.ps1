@@ -2,60 +2,91 @@
 
 $ScriptVersion = '0.1.0'
 
-$Command = $args[0]
-if (-not $Command) {
-  $Command = 'help'
-}
-
 $Commands = [ordered]@{
-  help       = @{
+  help        = @{
     Key         = 'help'
     Description = 'ヘルプを表示する (このコマンド)'
   }
-  list       = @{
+  list        = @{
     Key         = 'list'
     Description = 'インストールされているパッケージを一覧表示する'
   }
-  search     = @{
+  search      = @{
     Key         = 'search'
     Description = 'パッケージを検索する'
   }
-  show       = @{
+  show        = @{
     Key         = 'show'
     Description = 'パッケージの詳細を表示する'
   }
-  install    = @{
+  install     = @{
     Key         = 'install'
     Description = 'パッケージをインストールする'
   }
-  reinstall  = @{
+  reinstall   = @{
     Key         = 'reinstall'
     Description = 'パッケージを再インストールする'
   }
-  remove     = @{
+  remove      = @{
     Key         = 'remove'
     Description = 'パッケージを削除する'
   }
-  purge      = @{
+  purge       = @{
     Key         = 'purge'
     Description = 'パッケージを完全に削除する'
   }
-  autoremove = @{
+  autoremove  = @{
     Key         = 'autoremove'
     Description = '自動でインストールされたがもはや使われていないパッケージを削除する'
   }
-  autopurge  = @{
+  autopurge   = @{
     Key         = 'autopurge'
     Description = '自動でインストールされたがもはや使われていないパッケージを完全に削除する'
   }
-  update     = @{
+  update      = @{
     Key         = 'update'
     Description = 'パッケージマニフェストを更新する'
   }
-  upgrade    = @{
+  upgrade     = @{
     Key         = 'upgrade'
     Description = 'パッケージをアップグレードする'
   }
+  interactive = @{
+    Key         = 'interactive'
+    Description = '対話型シェルモードで実行する'
+  }
+}
+
+if ($args[0] -is [array]) {
+  $args = $args[0]
+}
+
+$Command = $args[0]
+if (-not $Command) {
+  $Command = $Commands.interactive.Key
+}
+
+if ($Command -eq $Commands.interactive.Key) {
+  Write-Host "BUtler $ScriptVersion Interactive Mode"
+  Write-Host
+  Write-Host 'help で使用方法を表示します'
+  Write-Host '終了する場合は exit と入力するか、Ctrl+C を押してください'
+  $exit = $false
+  do {
+    Write-Host
+    Write-Host -ForegroundColor Green -NoNewline 'BUtler'
+    Write-Host -NoNewline '> '
+    $input = Read-Host
+    $input = $input.Trim()
+    if ($input -eq 'exit') {
+      $exit = $true
+    }
+    elseif ($input) {
+      $input = $input.Split(' ')
+      . $MyInvocation.MyCommand.Path $input
+    }
+  } until ($exit)
+  exit 0
 }
 
 if ($Command -eq $Commands.help.Key) {
@@ -66,7 +97,7 @@ if ($Command -eq $Commands.help.Key) {
   Write-Host
   Write-Host 'コマンド:'
   $Commands.GetEnumerator() | ForEach-Object {
-    Write-Host "  $($_.Value.Key)$(' ' * (9 - $_.Value.Key.Length)) - $($_.Value.Description)"
+    Write-Host "  $($_.Value.Key)$(' ' * (11 - $_.Value.Key.Length)) - $($_.Value.Description)"
   }
   Write-Host
   Write-Host '詳細は https://github.com/Per-Terra/butler をご覧ください。'
@@ -78,6 +109,27 @@ if ($Command -notin $Commands.Values.Key) {
   Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 <コマンド>'
   exit 1
 }
+
+### original: https://github.com/microsoft/winget-pkgs/blob/4e76aed0d59412f0be0ecfefabfa14b5df05bec4/Tools/YamlCreate.ps1#L135-L149
+# 必要なモジュールのインストール
+$scriptDependencies = @('7Zip4Powershell', 'powershell-yaml')
+$scriptDependencies | ForEach-Object {
+  if (-not(Get-Module -ListAvailable -Name $_)) {
+    try {
+      Install-Module -Name $_ -Force -Repository PSGallery -Scope CurrentUser
+    }
+    catch {
+      throw "'$_' のインストールに失敗しました"
+    }
+    finally {
+      # Double check that it was installed properly
+      if (-not(Get-Module -ListAvailable -Name $_)) {
+        throw "'$_' が見つかりません"
+      }
+    }
+  }
+}
+###
 
 . (Join-Path -Path $PSScriptRoot -ChildPath './lib/Get-Sha256.ps1')
 
