@@ -66,7 +66,7 @@ function Install-File {
   }
   else {
     Write-Debug -Message "シンボリックリンクを作成しています: $targetPath"
-    $null = New-Item -Path $targetPath -ItemType SymbolicLink -Value $SourcePath -Force
+    $null = New-Item -Path $targetPath -ItemType SymbolicLink -Value $SourcePath.Replace((Split-Path -Path $targetPath -Parent), '.') -Force
   }
 
   $script:managedFiles += [pscustomobject]@{
