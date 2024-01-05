@@ -791,7 +791,7 @@ if ($Command -eq $Commands.install.Key -or ($Command -eq $Commands.upgrade.Key))
   $installedSize = 0
 
   if ($upgrade) {
-    Write-Host '以下のパッケージが更新されます:'
+    Write-Host '以下のパッケージがアップグレードされます:'
   }
   else {
     Write-Host '以下のパッケージが新たにインストールされます:'
