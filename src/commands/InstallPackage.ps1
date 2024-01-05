@@ -49,12 +49,11 @@ function Install-File {
         $script:managedFiles = $script:managedFiles | Where-Object { $_.Path -ne $Install.TargetPath }
       }
       else {
-        Write-Warning -Message "ファイルは既に別のパッケージによってインストールされています: $targetPath"
+        Write-Host -ForegroundColor Yellow "ファイルは既に $($managedFileInfo.Identifier) ($($managedFileInfo.Version)) によってインストールされています: $targetPath"
       }
     }
     else {
-      Write-Error -Message "ファイルが既に存在します: $targetPath"
-      throw
+      throw "ファイルが既に存在します: $targetPath"
     }
   }
 
