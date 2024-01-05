@@ -52,7 +52,7 @@ if (Test-Path -LiteralPath $ExtractPath -PathType Container) {
 Expand-Archive -Path $ZipFilePath -DestinationPath $ExtractPath
 
 Write-Host 'ファイルをコピーしています...'
-Get-ChildItem (Join-Path -Path $ExtractPath -ChildPath 'butler-main/src') |
+Get-ChildItem (Join-Path -Path $ExtractPath -ChildPath 'butler-main/src') -Recurse -File |
 Copy-Item -Destination $InstallPath -Recurse
 
 Write-Host 'ショートカットを作成しています...'
