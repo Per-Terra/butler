@@ -1065,24 +1065,28 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
     }
   }
 
-  $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object {
-    $packageIdentifier = $_.Identifier
-    $packageVersion = $_.Version
-    $depends = $PackageManifests.$packageIdentifier.$packageVersion.Depends
-    if ($depends) {
-      $depends | ForEach-Object {
-        $dependency = $_ | Split-PackageRelationShip
-        foreach ($packageToRemove in $packagesToRemove) {
-          if ($dependency.Identifier -eq $packageToRemove -and $packageIdentifier -notin $packagesToRemove) {
-            if (-not $auto) {
-              Write-Host -ForegroundColor Red "$packageIdentifier ($packageVersion) は $($dependency.Identifier) ($($dependency.Operator) $($dependency.Version)) に依存しています"
+  do {
+    $isDependencyResolved = $true
+    $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object {
+      $packageIdentifier = $_.Identifier
+      $packageVersion = $_.Version
+      $depends = $PackageManifests.$packageIdentifier.$packageVersion.Depends
+      if ($depends) {
+        $depends | ForEach-Object {
+          $dependency = $_ | Split-PackageRelationShip
+          foreach ($packageToRemove in $packagesToRemove) {
+            if ($dependency.Identifier -eq $packageToRemove -and $packageIdentifier -notin $packagesToRemove) {
+              $isDependencyResolved = $false
+              if (-not $auto) {
+                Write-Host -ForegroundColor Red "$packageIdentifier ($packageVersion) は $($dependency.Identifier) ($($dependency.Operator) $($dependency.Version)) に依存しています"
+              }
+              $packagesToRemove = @($packagesToRemove | Where-Object { $_ -ne $packageToRemove })
             }
-            $packagesToRemove = @($packagesToRemove | Where-Object { $_ -ne $packageToRemove })
           }
         }
       }
     }
-  }
+  } until ($isDependencyResolved)
 
   if ($packagesToRemove.Count -eq 0) {
     Write-Host '操作の対象となるパッケージはありません'
