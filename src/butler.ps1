@@ -8,45 +8,53 @@ if (-not $Command) {
 }
 
 $Commands = [ordered]@{
-  help      = @{
+  help       = @{
     Key         = 'help'
-    Description = 'ヘルプを表示します (このコマンド)'
+    Description = 'ヘルプを表示する (このコマンド)'
   }
-  list      = @{
+  list       = @{
     Key         = 'list'
-    Description = 'インストールされているパッケージを一覧表示します'
+    Description = 'インストールされているパッケージを一覧表示する'
   }
-  search    = @{
+  search     = @{
     Key         = 'search'
-    Description = 'パッケージを検索します'
+    Description = 'パッケージを検索する'
   }
-  show      = @{
+  show       = @{
     Key         = 'show'
-    Description = 'パッケージの詳細を表示します'
+    Description = 'パッケージの詳細を表示する'
   }
-  install   = @{
+  install    = @{
     Key         = 'install'
-    Description = 'パッケージをインストールします'
+    Description = 'パッケージをインストールする'
   }
-  reinstall = @{
+  reinstall  = @{
     Key         = 'reinstall'
-    Description = 'パッケージを再インストールします'
+    Description = 'パッケージを再インストールする'
   }
-  remove    = @{
+  remove     = @{
     Key         = 'remove'
-    Description = 'パッケージを削除します'
+    Description = 'パッケージを削除する'
   }
-  purge     = @{
+  purge      = @{
     Key         = 'purge'
-    Description = 'パッケージを完全に削除します'
+    Description = 'パッケージを完全に削除する'
   }
-  update    = @{
+  autoremove = @{
+    Key         = 'autoremove'
+    Description = '自動でインストールされたがもはや使われていないパッケージを削除する'
+  }
+  autopurge  = @{
+    Key         = 'autopurge'
+    Description = '自動でインストールされたがもはや使われていないパッケージを完全に削除する'
+  }
+  update     = @{
     Key         = 'update'
-    Description = 'パッケージマニフェストを更新します'
+    Description = 'パッケージマニフェストを更新する'
   }
-  upgrade   = @{
+  upgrade    = @{
     Key         = 'upgrade'
-    Description = 'パッケージをアップグレードします'
+    Description = 'パッケージをアップグレードする'
   }
 }
 
@@ -358,7 +366,7 @@ function Split-PackageRelationShip {
   }
 }
 
-if ($Command -eq $Commands.install.Key -or ($Command -eq $Commands.upgrade.Key)) {
+if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   $upgrade = $Command -eq $Commands.upgrade.Key
   if (-not $upgrade -and ($args.Count -lt 2)) {
     Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
@@ -768,6 +776,7 @@ if ($Command -eq $Commands.install.Key -or ($Command -eq $Commands.upgrade.Key))
   }
 
   if ($packagesToInstall.Count -eq 0) {
+    Write-Host '操作の対象となるパッケージはありません'
     exit 0
   }
 
@@ -961,21 +970,28 @@ if ($Command -eq $Commands.reinstall.Key) {
   }
 }
 
-if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
-  $purge = $Command -eq $Commands.purge.Key
+if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove.Key, $Commands.autopurge.Key) {
+  $Command = $Command.ToLower()
+  $auto = $Command -in $Commands.autoremove.Key, $Commands.autopurge.Key
+  $purge = $Command -in $Commands.purge.Key, $Commands.autopurge.Key
 
-  if ($args.Count -lt 2) {
+  if (-not $auto -and ($args.Count -lt 2)) {
     Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
-    if ($purge) {
-      Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 purge <パッケージ名> [<パッケージ名>]...'
-    }
-    else {
-      Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 remove <パッケージ名> [<パッケージ名>]...'
-    }
+    Write-Host -ForegroundColor Red "使用方法: .\butler.ps1 $Command <パッケージ名> [<パッケージ名>]..."
     exit 1
   }
 
-  $packagesToRemove = $args[1..($args.Count - 1)] | Sort-Object -Unique
+  if ($auto) {
+    if ($purge) {
+      $packagesToRemove = $script:managedPackages | Where-Object { $_.InstallationType -eq 'Auto' } | ForEach-Object { $_.Identifier }
+    }
+    else {
+      $packagesToRemove = $script:managedPackages | Where-Object { $_.InstallationType -eq 'Auto' -and ($_.Status -eq 'Installed') } | ForEach-Object { $_.Identifier }
+    }
+  }
+  else {
+    $packagesToRemove = $args[1..($args.Count - 1)] | Sort-Object -Unique
+  }
 
   $packagesToRemove | ForEach-Object {
     $packageIdentifier = $_
@@ -986,7 +1002,7 @@ if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
       $packagesToRemove += $packageIdentifier
     }
     else {
-      Write-Host -ForegroundColor Red "パッケージがインストールされていません: $packageIdentifier"
+      Write-Host -ForegroundColor Red "パッケージは管理されていません: $packageIdentifier"
       exit 1
     }
   }
@@ -1000,7 +1016,9 @@ if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
         $dependency = $_ | Split-PackageRelationShip
         foreach ($packageToRemove in $packagesToRemove) {
           if ($dependency.Identifier -eq $packageToRemove -and $packageIdentifier -notin $packagesToRemove) {
-            Write-Host -ForegroundColor Red "$packageIdentifier ($packageVersion) は $($dependency.Identifier) ($($dependency.Operator) $($dependency.Version)) に依存しています"
+            if (-not $auto) {
+              Write-Host -ForegroundColor Red "$packageIdentifier ($packageVersion) は $($dependency.Identifier) ($($dependency.Operator) $($dependency.Version)) に依存しています"
+            }
             $packagesToRemove = @($packagesToRemove | Where-Object { $_ -ne $packageToRemove })
           }
         }
@@ -1009,6 +1027,7 @@ if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
   }
 
   if ($packagesToRemove.Count -eq 0) {
+    Write-Host '操作の対象となるパッケージはありません'
     exit 0
   }
 
