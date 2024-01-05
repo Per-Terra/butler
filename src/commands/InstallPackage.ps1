@@ -149,15 +149,27 @@ foreach ($sourceFile in $Manifest.Files) {
   }
 
   if (-not $isCacheAvailable) {
+    $params = @{
+      Uri     = $sourceUrl
+      OutFile = $cacheFilePath
+    }
+
+    # rikky氏のAmazonっぽいからのダウンロードに対応
+    if ($_ -match 'https://hazumurhythm\.com/php/amazon_download\.php\?name=(.+)') {
+      $id = $Matches[1]
+      $params.Add('Headers', @{ Referer = "https://hazumurhythm.com/wev/amazon/?script=$id" })
+    }
+
     try {
       Write-Debug -Message "ファイルをダウンロードしています: $($sourceUrl.AbsoluteUri)"
-      Invoke-WebRequest -Uri $sourceUrl -OutFile $cacheFilePath
+      Invoke-WebRequest @params
     }
     catch {
       Write-Error -Message $_.ToString()
       Write-Error -Message "ファイルのダウンロードに失敗しました: $($sourceUrl.AbsoluteUri)"
       throw
     }
+
     $sha256 = $cacheFilePath | Get-Sha256
     if ($sha256 -ne $sourceFile.Sha256) {
       Write-Error -Message "ファイルのハッシュ値が一致しません: $cacheFilePath"
