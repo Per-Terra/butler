@@ -956,7 +956,7 @@ if ($Command -eq $Commands.reinstall.Key) {
       $null = New-Item -Path $packageDirectory -ItemType Directory
     }
 
-    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
+    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
     & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
   }
 }
@@ -1048,7 +1048,7 @@ if ($Command -eq $Commands.remove.Key -or ($Command -eq $Commands.purge.Key)) {
     $manifest = $PackageManifests.$packageIdentifier.$packageVersion
 
     $packageDirectory = Join-Path -Path $PackagesDirectory -ChildPath $packageIdentifier
-    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath -Purge:$purge
+    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath -Purge:$purge
 
     $managedFiles = @(Import-Csv -LiteralPath $ManagedFilesPath)
 
