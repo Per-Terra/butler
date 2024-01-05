@@ -85,7 +85,7 @@ if ($Command -eq $Commands.interactive.Key) {
     if ($userInput -eq 'exit') {
       $exit = $true
     }
-    elseif ($userInput) {
+    elseif ($userInput -and $userInput -ne $Commands.interactive.Key) {
       try {
         . $MyInvocation.MyCommand.Path $userInput.Split(' ')
       }
