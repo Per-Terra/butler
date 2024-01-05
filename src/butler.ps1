@@ -857,28 +857,66 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
 
   $installedSize = 0
 
-  if ($upgrade) {
-    Write-Host '以下のパッケージがアップグレードされます:'
-  }
-  else {
-    Write-Host '以下のパッケージが新たにインストールされます:'
-  }
-  $consoleWidthRemain = $ConsoleWidth - 2
-  Write-Host -NoNewline '  '
-  @($dependedPackages) + @($packagesToInstall) | Sort-Object -Property Identifier | ForEach-Object {
-    $installedSize += $PackageManifests.$($_.Identifier).$($_.InstallableVersions[0]).InstalledSize
-    $consoleWidthRemain -= $_.Identifier.Length
-    if ($consoleWidthRemain -lt 0) {
-      Write-Host
-      Write-Host -NoNewline '  '
-      $consoleWidthRemain = $ConsoleWidth - $_.Identifier.Length - 2
-    }
-    Write-Host -NoNewline "$($_.Identifier) "
-    $consoleWidthRemain -= 1
-  }
-  Write-Host
+  $packagesToBeUpgraded = @()
+  $packagesToBeNewlyInstalled = @()
 
-  if ($installedSize -lt 1024) {
+  foreach ($package in @($dependedPackages) + @($packagesToInstall)) {
+    $installedSize += $PackageManifests.$($package.Identifier).$($package.InstallableVersions[0]).InstalledSize
+
+    $installedPackage = $script:managedPackages | Where-Object { $_.Identifier -eq $package.Identifier -and ($_.Status -eq 'Installed') } | Select-Object -First 1
+    if ($installedPackage) {
+      $installedSize -= $PackageManifests.$($package.Identifier).$($installedPackage.Version).InstalledSize
+      $packagesToBeUpgraded += "$($package.Identifier) ($($installedPackage.Version) -> $($package.InstallableVersions[0]))"
+    }
+    else {
+      $packagesToBeNewlyInstalled += "$($package.Identifier) ($($package.InstallableVersions[0]))"
+    }
+  }
+
+  if ($packagesToBeUpgraded.Count -gt 0) {
+    Write-Host '以下のパッケージがアップグレードされます:'
+    $consoleWidthRemain = $ConsoleWidth - 2
+    Write-Host -NoNewline '  '
+    $packagesToBeUpgraded | Sort-Object | ForEach-Object {
+      $consoleWidthRemain -= $_.Length
+      if ($consoleWidthRemain -lt 0) {
+        Write-Host
+        Write-Host -NoNewline '  '
+        $consoleWidthRemain = $ConsoleWidth - $_.Length - 2
+      }
+      Write-Host -NoNewline "$_ "
+      $consoleWidthRemain -= 1
+    }
+    Write-Host
+  }
+
+  if ($packagesToBeNewlyInstalled.Count -gt 0) {
+    Write-Host '以下のパッケージが新たにインストールされます:'
+    $consoleWidthRemain = $ConsoleWidth - 2
+    Write-Host -NoNewline '  '
+    $packagesToBeNewlyInstalled | Sort-Object | ForEach-Object {
+      $consoleWidthRemain -= $_.Length
+      if ($consoleWidthRemain -lt 0) {
+        Write-Host
+        Write-Host -NoNewline '  '
+        $consoleWidthRemain = $ConsoleWidth - $_.Length - 2
+      }
+      Write-Host -NoNewline "$_ "
+      $consoleWidthRemain -= 1
+    }
+    Write-Host
+  }
+
+  if ($installedSize -le -1024) {
+    Write-Host "この操作後に $([math]::Abs([math]::Round($installedSize / 1024, 2))) MiB のディスク容量が解放されます"
+  }
+  elseif ($installedSize -lt 0) {
+    Write-Host "この操作後に $([math]::Abs($installedSize)) KiB のディスク容量が解放されます"
+  }
+  elseif ($installedSize -eq 0) {
+    Write-Host 'この操作後に追加でディスク容量が消費されることはありません'
+  }
+  elseif ($installedSize -lt 1024) {
     Write-Host "この操作後に追加で $installedSize KiB のディスク容量が消費されます"
   }
   else {
