@@ -7,7 +7,7 @@ param (
 . (Join-Path -Path $PSScriptRoot -ChildPath '../lib/Get-Sha256.ps1')
 
 $ReleaseUrl = [System.Uri]::new($BaseUrl, './release.yaml')
-$CacheDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'cache'
+$CacheDirectory = Join-Path -Path $PSScriptRoot -ChildPath '../cache'
 $ManifestsCacheDirectory = Join-Path -Path $CacheDirectory -ChildPath 'manifests'
 if (-not (Test-Path -Path $CacheDirectory -PathType Container)) {
   $null = New-Item -Path $CacheDirectory -ItemType Directory
@@ -16,7 +16,7 @@ if (-not (Test-Path -Path $ManifestsCacheDirectory -PathType Container)) {
   $null = New-Item -Path $ManifestsCacheDirectory -ItemType Directory
 }
 
-Write-Host "パッケージマニフェストを更新しています: $ReleaseUrl"
+Write-Host "取得中: $ReleaseUrl"
 
 $releasePath = Join-Path -Path $ManifestsCacheDirectory -ChildPath "$($ReleaseUrl.Host)$($ReleaseUrl.AbsolutePath)"
 $cachedRelease = $null
