@@ -1,4 +1,4 @@
-#Requires -Version 7
+#Requires -Version 7.4
 [CmdletBinding()]
 
 $ScriptVersion = '0.1.0'
