@@ -991,12 +991,20 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
 
 if ($Command -eq $Commands.reinstall.Key) {
   if ($args.Count -lt 2) {
-    Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
-    Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 reinstall <パッケージ名> [<パッケージ名>]...'
-    exit 1
+    Write-Host '全てのパッケージが再インストールされます'
+    Write-Host -NoNewline '続行しますか? [y/N] '
+    do {
+      $answer = Read-Host
+    } until ([string]::IsNullOrEmpty($answer) -or ($answer -in @('y', 'N')))
+    if ($answer -ne 'Y') {
+      Write-Host '中断しました'
+      exit 0
+    }
+    $packagesToReinstall = $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object { $_.Identifier }
   }
-
-  $packagesToReinstall = $args[1..($args.Count - 1)] | Sort-Object -Unique
+  else {
+    $packagesToReinstall = $args[1..($args.Count - 1)] | Sort-Object -Unique
+  }
 
   $packagesToReinstall | ForEach-Object {
     $packageIdentifier = $_
