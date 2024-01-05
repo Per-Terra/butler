@@ -59,10 +59,13 @@ $Commands = [ordered]@{
 }
 
 if ($args[0] -is [array]) {
-  $args = $args[0]
+  $arguments = $args[0]
+}
+else {
+  $arguments = $args
 }
 
-$Command = $args[0]
+$Command = $arguments[0]
 if (-not $Command) {
   $Command = $Commands.interactive.Key
 }
@@ -77,15 +80,14 @@ if ($Command -eq $Commands.interactive.Key) {
     Write-Host
     Write-Host -ForegroundColor Green -NoNewline 'BUtler'
     Write-Host -NoNewline '> '
-    $input = Read-Host
-    $input = $input.Trim()
-    if ($input -eq 'exit') {
+    $userInput = Read-Host
+    $userInput = $userInput.Trim()
+    if ($userInput -eq 'exit') {
       $exit = $true
     }
-    elseif ($input) {
-      $input = $input.Split(' ')
+    elseif ($userInput) {
       try {
-        . $MyInvocation.MyCommand.Path $input
+        . $MyInvocation.MyCommand.Path $userInput.Split(' ')
       }
       catch {
         Write-Host -ForegroundColor Red $_.ToString()
@@ -286,17 +288,17 @@ if ($Command -eq $Commands.list.Key) {
 }
 
 if ($Command -eq $Commands.search.Key) {
-  if ($args.Count -lt 2) {
+  if ($arguments.Count -lt 2) {
     Write-Host -ForegroundColor Red '検索クエリが指定されていません'
     Write-Host -ForegroundColor Red '使い方: .\butler.ps1 search <検索クエリ>'
     exit 1
   }
-  elseif ($args.Count -gt 2) {
+  elseif ($arguments.Count -gt 2) {
     Write-Host -ForegroundColor Red '検索クエリが複数指定されています'
     Write-Host -ForegroundColor Red '使い方: .\butler.ps1 search <検索クエリ>'
     exit 1
   }
-  $query = $args[1]
+  $query = $arguments[1]
 
   $PackageManifests.GetEnumerator() |
   Where-Object { $_.Key -like "*$query*" -or
@@ -323,17 +325,17 @@ if ($Command -eq $Commands.search.Key) {
 }
 
 if ($Command -eq $Commands.show.Key) {
-  if ($args.Count -lt 2) {
+  if ($arguments.Count -lt 2) {
     Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
     Write-Host -ForegroundColor Red '使い方: .\butler.ps1 show <パッケージ名>[=<バージョン>]'
     exit 1
   }
-  elseif ($args.Count -gt 2) {
+  elseif ($arguments.Count -gt 2) {
     Write-Host -ForegroundColor Red 'パッケージ名が複数指定されています'
     Write-Host -ForegroundColor Red '使い方: .\butler.ps1 show <パッケージ名>[=<バージョン>]'
     exit 1
   }
-  $packageIdentifier = $args[1]
+  $packageIdentifier = $arguments[1]
   $packageVersion = $null
   if ($packageIdentifier.Contains('=')) {
     $packageIdentifier, $packageVersion = $packageIdentifier.Split('=')
@@ -426,7 +428,7 @@ function Split-PackageRelationShip {
 
 if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   $upgrade = $Command -eq $Commands.upgrade.Key
-  if (-not $upgrade -and ($args.Count -lt 2)) {
+  if (-not $upgrade -and ($arguments.Count -lt 2)) {
     Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
     Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 install <パッケージ名>[=<バージョン>] [<パッケージ名>[=<バージョン>]]...'
     exit 1
@@ -435,11 +437,11 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   $packagesToInstall = @()
   $dependedPackages = @()
 
-  if ($upgrade -and ($args.Count -lt 2)) {
+  if ($upgrade -and ($arguments.Count -lt 2)) {
     $specifiedPackages = $script:managedPackages | Where-Object { $_.Status -eq 'Installed' -and $_.IsVersionPinned -ne 'True' } | Select-Object -ExpandProperty Identifier
   }
   else {
-    $specifiedPackages = $args[1..($args.Count - 1)] | Sort-Object -Unique
+    $specifiedPackages = $arguments[1..($arguments.Count - 1)] | Sort-Object -Unique
   }
 
   $specifiedPackages | ForEach-Object {
@@ -485,7 +487,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   Write-Host '依存関係を解決しています...' -NoNewline
 
   do {
-    $isDependencyResolved = $true
+    $script:isDependencyResolved = $true
     foreach ($package in @($dependedPackages) + @($packagesToInstall)) {
       $depends = $PackageManifests.($package.Identifier).($package.InstallableVersions[0]).Depends
       if ($depends) {
@@ -688,7 +690,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
             }
           }
           else {
-            $isDependencyResolved = $false
+            $script:isDependencyResolved = $false
             $dependedPackage = $PackageManifests.GetEnumerator() | Where-Object { $_.Key -eq $dependency.Identifier } | Select-Object -First 1
             if (-not $dependedPackage) {
               Write-Host ' 失敗'
@@ -745,7 +747,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
         }
       }
     }
-  } until ($isDependencyResolved)
+  } until ($script:isDependencyResolved)
 
   $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object {
     $packageIdentifier = $_.Identifier
@@ -1028,7 +1030,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
 }
 
 if ($Command -eq $Commands.reinstall.Key) {
-  if ($args.Count -lt 2) {
+  if ($arguments.Count -lt 2) {
     Write-Host '全てのパッケージが再インストールされます'
     Write-Host -NoNewline '続行しますか? [y/N] '
     do {
@@ -1041,7 +1043,7 @@ if ($Command -eq $Commands.reinstall.Key) {
     $packagesToReinstall = $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object { $_.Identifier }
   }
   else {
-    $packagesToReinstall = $args[1..($args.Count - 1)] | Sort-Object -Unique
+    $packagesToReinstall = $arguments[1..($arguments.Count - 1)] | Sort-Object -Unique
   }
 
   $packagesToReinstall | ForEach-Object {
@@ -1079,7 +1081,7 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
   $auto = $Command -in $Commands.autoremove.Key, $Commands.autopurge.Key
   $purge = $Command -in $Commands.purge.Key, $Commands.autopurge.Key
 
-  if (-not $auto -and ($args.Count -lt 2)) {
+  if (-not $auto -and ($arguments.Count -lt 2)) {
     Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
     Write-Host -ForegroundColor Red "使用方法: .\butler.ps1 $Command <パッケージ名> [<パッケージ名>]..."
     exit 1
@@ -1094,7 +1096,7 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
     }
   }
   else {
-    $packagesToRemove = $args[1..($args.Count - 1)] | Sort-Object -Unique
+    $packagesToRemove = $arguments[1..($arguments.Count - 1)] | Sort-Object -Unique
   }
 
   $packagesToRemove | ForEach-Object {
@@ -1112,7 +1114,7 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
   }
 
   do {
-    $isDependencyResolved = $true
+    $script:isDependencyResolved = $true
     $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object {
       $packageIdentifier = $_.Identifier
       $packageVersion = $_.Version
@@ -1122,7 +1124,7 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
           $dependency = $_ | Split-PackageRelationShip
           foreach ($packageToRemove in $packagesToRemove) {
             if ($dependency.Identifier -eq $packageToRemove -and $packageIdentifier -notin $packagesToRemove) {
-              $isDependencyResolved = $false
+              $script:isDependencyResolved = $false
               if (-not $auto) {
                 Write-Host -ForegroundColor Red "$packageIdentifier ($packageVersion) は $($dependency.Identifier) ($($dependency.Operator) $($dependency.Version)) に依存しています"
               }
@@ -1132,7 +1134,7 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
         }
       }
     }
-  } until ($isDependencyResolved)
+  } until ($script:isDependencyResolved)
 
   if ($packagesToRemove.Count -eq 0) {
     Write-Host '操作の対象となるパッケージはありません'
