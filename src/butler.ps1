@@ -158,6 +158,15 @@ if (-not (Test-Path -Path $SourcesPath)) {
 }
 
 @(
+  $ManagedFilesPath,
+  $ManagedPackagesPath
+) | ForEach-Object {
+  if (-not (Test-Path -Path $_)) {
+    $null = New-Item -Path $_ -ItemType File
+  }
+}
+
+@(
   $CacheDirectory
   $ManifestsCacheDirectory
   $PackagesCacheDirectory
