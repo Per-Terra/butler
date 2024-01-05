@@ -84,7 +84,12 @@ if ($Command -eq $Commands.interactive.Key) {
     }
     elseif ($input) {
       $input = $input.Split(' ')
-      . $MyInvocation.MyCommand.Path $input
+      try {
+        . $MyInvocation.MyCommand.Path $input
+      }
+      catch {
+        Write-Host -ForegroundColor Red $_.ToString()
+      }
     }
   } until ($exit)
   exit 0
