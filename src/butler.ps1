@@ -73,6 +73,13 @@ if (-not $Command) {
 if ($Command -eq $Commands.interactive.Key) {
   Write-Host "BUtler $ScriptVersion Interactive Mode"
   Write-Host
+  try {
+    . $MyInvocation.MyCommand.Path 'update'
+  }
+  catch {
+    Write-Host -ForegroundColor Red $_.ToString()
+  }
+  Write-Host
   Write-Host 'help で使用方法を表示します'
   Write-Host '終了する場合は exit と入力するか、Ctrl+C を押してください'
   $exit = $false
