@@ -1,17 +1,38 @@
-$ZipUrl = 'https://codeload.github.com/Per-Terra/butler/zip/refs/heads/main'
-$ZipFIle = New-TemporaryFile
-$ExtractPath = Join-Path $env:TEMP 'butler-main/'
-$InstallPath = Join-Path -Path (Get-Location) -ChildPath '.butler/'
+param (
+  [string]$Version
+)
+
+Write-Host 'BUtlerをインストールしています...'
+Write-Host
+
+if (-not $Version) {
+  Write-Host -NoNewline '最新バージョンを取得しています...'
+  try {
+    $Version = Invoke-RestMethod -Uri 'https://api.github.com/repos/Per-Terra/butler/releases/latest' | Select-Object -ExpandProperty 'tag_name'
+  }
+  catch {
+    Write-Host ' 失敗'
+    Write-Error -Message $_.ToString()
+    Read-Host -Prompt 'Enterキーを押して終了します...'
+    exit 1
+  }
+  Write-Host " $Version"
+}
+
+$zipUrl = "https://github.com/Per-Terra/butler/archive/refs/tags/$Version.zip"
+$zipFile = New-TemporaryFile
+$extractPath = Join-Path $env:TEMP "butler-$Version"
+$installPath = Join-Path -Path (Get-Location) -ChildPath '.butler/'
 
 # 旧インストーラーの残骸を削除
 if (Test-Path -LiteralPath (Join-Path -Path $env:TEMP -ChildPath 'butler-main.zip') -PathType Leaf) {
   Remove-Item -Path (Join-Path -Path $env:TEMP -ChildPath 'butler-main.zip') -Force
 }
+if (Test-Path -LiteralPath (Join-Path -Path $env:TEMP -ChildPath 'butler-main') -PathType Container) {
+  Remove-Item -Path (Join-Path -Path $env:TEMP -ChildPath 'butler-main') -Recurse -Force
+}
 
-Write-Host 'BUtlerをインストールしています...'
-Write-Host
-
-if (Test-Path -LiteralPath $InstallPath -PathType Container) {
+if (Test-Path -LiteralPath $installPath -PathType Container) {
   Write-Host '.butler フォルダーが既に存在します'
   Write-Host -NoNewline '上書きしますか? [Y/n]'
   do {
@@ -23,47 +44,46 @@ if (Test-Path -LiteralPath $InstallPath -PathType Container) {
   }
 }
 else {
-  $null = New-Item -Path $InstallPath -ItemType Directory -Force
+  $null = New-Item -Path $installPath -ItemType Directory -Force
 }
 
 Write-Host -NoNewline 'ファイルをダウンロードしています...'
 try {
-  Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipFIle
+  Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile
 }
 catch {
   Write-Error -Message $_.ToString()
   Write-Host ' 失敗'
-  Start-Sleep -Seconds 5
+  Read-Host -Prompt 'Enterキーを押して終了します...'
   exit 1
 }
 Write-Host ' 完了'
 
 Write-Host -NoNewline 'ファイルを展開しています...'
-if (Test-Path -LiteralPath $ExtractPath -PathType Container) {
-  Remove-Item -Path $ExtractPath -Recurse -Force
+if (Test-Path -LiteralPath $extractPath -PathType Container) {
+  Remove-Item -Path $extractPath -Recurse -Force
 }
-Expand-Archive -Path $ZipFIle -DestinationPath $ExtractPath
+Expand-Archive -Path $zipFile -DestinationPath $extractPath
 Write-Host ' 完了'
 
 Write-Host -NoNewline 'ファイルをコピーしています...'
-Copy-Item -Path (Join-Path -Path $ExtractPath -ChildPath 'butler-main/src/*') -Destination $InstallPath -Recurse -Force
+Copy-Item -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') -Destination $installPath -Recurse -Force
 Write-Host ' 完了'
 
 Write-Host -NoNewline 'ショートカットを作成しています...'
 $ShortcutPath = 'BUtler.lnk'
-$ShortcutTarget = Join-Path -Path $InstallPath -ChildPath 'butler.bat'
+$ShortcutTarget = Join-Path -Path $installPath -ChildPath 'butler.bat'
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = $ShortcutTarget
 $Shortcut.Save()
 Write-Host ' 完了'
 
-Write-Host -NoNewline 'ファイルを削除しています...'
-Remove-Item -Path $ZipFIle -Force
-Remove-Item -Path $ExtractPath -Recurse -Force
+Write-Host -NoNewline '一時ファイルを削除しています...'
+Remove-Item -Path $zipFile -Force
+Remove-Item -Path $extractPath -Recurse -Force
 Write-Host ' 完了'
 
 Write-Host
 Write-Host 'インストールが完了しました'
-
 Start-Sleep -Seconds 3
