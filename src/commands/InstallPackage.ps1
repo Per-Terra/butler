@@ -43,6 +43,11 @@ function Install-File {
     Write-Debug -Message "ファイルが既に存在します: $targetPath"
     $managedFileInfo = $script:managedFiles | Where-Object { $_.Path -eq $Install.TargetPath }
     if ($managedFileInfo) {
+      if ($managedFileInfo.IsConfFile) {
+        Write-Debug -Message "ファイルは設定ファイルです: $targetPath"
+        Write-Debug -Message "スキップしました"
+        return
+      }
       if ($managedFileInfo.Identifier -eq $Identifier -or ($managedFileInfo.Identifier -in $Manifest.Replaces)) {
         Write-Debug -Message "ファイルを削除しています: $targetPath"
         Remove-Item -LiteralPath $targetPath -Force
@@ -50,10 +55,24 @@ function Install-File {
       }
       else {
         Write-Host -ForegroundColor Yellow "ファイルは既に $($managedFileInfo.Identifier) ($($managedFileInfo.Version)) によってインストールされています: $targetPath"
+        Write-Host -ForegroundColor Yellow 'スキップしました'
       }
     }
     else {
-      throw "ファイルが既に存在します: $targetPath"
+      Write-Host -ForegroundColor Yellow "ファイルが既に存在します: $targetPath"
+      Write-Host -ForegroundColor Yellow 'ファイルは手動でインストールされた可能性があります'
+      Write-Host -NoNewline 'ファイルを上書きしますか? [y/N]'
+      do {
+        $answer = Read-Host
+      } until ([string]::IsNullOrEmpty($answer) -or ($answer -in @('y', 'N')))
+      if ($answer -eq 'y') {
+        Write-Debug -Message "ファイルを削除しています: $targetPath"
+        Remove-Item -LiteralPath $targetPath -Force
+      }
+      else {
+        Write-Host 'スキップしました'
+        return
+      }
     }
   }
 
