@@ -2,35 +2,24 @@
 
 [日本語(Japanese)](/README.md) • [English](/docs/README-en.md)
 
-BUtlerはAviUtl用のコマンドラインパッケージマネージャーです。
+BUtler（バトラーと発音します）はAviUtl用のコマンドラインパッケージマネージャーです。
 
 ## 特徴
 
-### 豊富なパッケージ
+- **apt風の簡単操作**：Debian系のLinuxディストリビューションで採用されているパッケージマネージャー、aptに似た雰囲気を持つコマンド体系を採用。迷うことなく使い始めることができます。
 
-- 100を超えるパッケージがBUtlerの[コミュニティリポジトリ](https://github.com/Per-Terra/butler-pkgs)に登録済み。あらゆるプラグインを簡単にインストールできます。
+- **豊富なパッケージ**：100を超えるパッケージがBUtlerの[コミュニティリポジトリ](https://github.com/Per-Terra/butler-pkgs)に登録済み。あらゆるプラグインを簡単にインストールできます。
 
-### シンプル設計
+- **依存関係も自動で解決**：必要なパッケージは自動でインストール。バージョンの相違などによる不具合に悩むこともありません。
 
-- すべてのファイルはBUtlerの管理フォルダー内に展開され、必要なファイルのみが**シンボリックリンクとして**インストールされます。
-  - ごちゃごちゃになりがちなAviUtlのフォルダを最小限に保ちつつ、開発者から提供されたドキュメントも見逃すことはありません。
-- 設定ファイルなどは**コピー**されます。
-  - 変更して良いファイルとそうでないファイルが一目瞭然。誤操作を防ぎます。
-
-### apt風の簡単操作
-
-- Debian系のLinuxディストリビューションで採用されているパッケージマネージャー、aptに似た雰囲気を持つコマンド体系を採用。迷うことなく使い始めることができます。
-
-### 依存関係も自動で解決
-
-- 必要なパッケージは自動でインストールされるので、手間がかかりません。
+- **シンプル・イズ・ベスト**：全てのファイルをBUtlerの管理フォルダー内に展開。動作に必要なファイルはシンボリックリンクとして、設定ファイルはコピーがあるべき場所に配置されます。
 
 ## インストール
 
 ### PowerShell 7.4以上をインストールする
 
-- PowerShellのインストール方法は[Microsoftの記事](https://learn.microsoft.com/ja-jp/powershell/scripting/install/installing-powershell-on-windows)を確認してください。
-- もしくは、次のコマンドで最新のバージョンをインストールできます。
+- PowerShellのインストール方法については[Microsoftの記事](https://learn.microsoft.com/ja-jp/powershell/scripting/install/installing-powershell-on-windows)をご参照ください。
+- もしくは、次のコマンドで最新のPowerShellをインストールできます。
 
   ```cmd
   winget install --id Microsoft.Powershell --source winget
@@ -38,16 +27,127 @@ BUtlerはAviUtl用のコマンドラインパッケージマネージャーで�
 
 ### BUtlerをインストールする
 
-- BUtlerをインストールするフォルダーを作成し、そのフォルダーに移動します。
+- AviUtlをセットアップするフォルダーを作成し、そのフォルダーに移動します。
+  - セットアップ済みの環境への追加はサポートされていません。
 - 以下のコマンドをコピーし、アドレスバーに貼り付けてEnterキーを押します。
 
-  ```cmd
+  ```pwsh
   pwsh -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Per-Terra/butler/main/installer.ps1'))"
   ```
 
 - `BUtler` という名称のショートカットをダブルクリックして、プロンプトが起動すればインストールは成功です。
-
 - 初回起動時は最初に `update` コマンドを実行する必要があります。
+
+## 使い方
+
+### 最新のパッケージマニフェストを取得する
+
+- セットアップが完了したら、まずは最新のパッケージマニフェストを取得しましょう。
+- BUtlerを起動して、以下のコマンドを入力します。
+
+```shell
+update
+```
+
+- デフォルトでは、BUtlerの[コミュニティリポジトリ](https://github.com/Per-Terra/butler-pkgs)から情報を取得します。
+- パッケージマニフェストは自動的にキャッシュされ、BUtlerによって利用されます。`update` コマンドでいつでも最新の情報に更新することができます。
+
+### AviUtlと拡張編集をインストールする
+
+- 最新のパッケージマニフェストを取得したら、まずはAviUtlと拡張編集をインストールしてみましょう。
+- BUtlerを起動して、以下のコマンドを入力します。
+
+```shell
+install aviutl exedit=0.92
+```
+
+- `install` はパッケージをインストールするコマンドです。
+- パッケージはそれぞれ固有の識別子を持ちます。大文字と小文字は区別されません。
+- バージョンを指定するときは、識別子とバージョンを `=` で結びます。
+  - バージョンを指定するとそのバージョンに固定ます。バージョンが固定されたパッケージが自動的にアップグレード（ダウングレード）されることはありません。
+
+### パッケージを削除する
+
+- `remove` コマンドと `purge` コマンドは、どちらもパッケージを削除するコマンドですが、動作が少しだけ異なります。
+- 例として、先程インストールしたAviUtlと拡張編集を削除してみましょう。
+- 必ずAviUtlを終了してから実行してください。
+  - もしまだ一度も起動していないのなら、違いが分かりやすいようにいったん起動して、終了しましょう。
+
+```shell
+remove aviutl exedit
+```
+
+- `remove` コマンドは、設定ファイルを保ったままパッケージを削除します。
+  - フォルダー内には `aviutl.ini`、`aviutl.sav`、`デフォルト.cfg`が依然として残っているはずです。
+- 「`exedit.ini` は？」と思いましたか？ 鋭いですね。
+  - `remove` コマンドでもユーザーによって変更されていないファイルは自動的に削除されます。
+  - もしあなたが `exedit.ini` に変更を加えていたのなら削除されずに残っているはずです。
+- では、さらに `purge` コマンドも実行してみましょう。
+
+```
+purge aviutl
+```
+
+- これで、先程の3つのファイルも削除されました。
+- `purge` コマンドは、設定ファイルも含めてパッケージのすべてのファイルを削除します。
+  - 設定ファイルには（パッケージマニフェストに登録されていれば）パッケージによって自動生成されるファイルも含みます。
+- `remove` コマンド実行後も、設定ファイルが残っているパッケージはBUtlerの管理下に保たれます。
+  - 任意のタイミングで `purge` コマンドを実行して、残っているファイルを削除することができます。
+
+### パッケージを検索する
+
+- `search` コマンドを使用して、インストール可能なパッケージを検索することができます。
+- 例として、「エンコード」を指定して検索してみましょう。
+
+```shell
+search エンコード
+```
+
+<details>
+<summary>実行結果</summary>
+
+```text
+Identifier  Version    ReleaseDate Developer Section       DisplayName               Description
+----------  -------    ----------- --------- -------       -----------               -----------
+cmpwnd      0.1        2016-02-07  aoytsk    Plugin/Other  比較ウィンドウ            2つの動画を比較するためのプラグイン…
+easymp4     0.1.1-fix  2020-04-23  aoytsk    Plugin/Output かんたんMP4出力           MP4でエンコードする出力プラグイン
+ffmpegOut   1.09       2023-10-25  rigaya    Plugin/Output                           ffmpegを使用してエンコードを行う出力プラグイン
+NVEnc       7.40       2023-12-10  rigaya    Plugin/Output                           NVIDIAのNVEncを使用してエンコードを行う出力プラグイン…
+QSVEnc      7.58       2024-01-04  rigaya    Plugin/Output                           Intel Media SDK を使用してエンコードを行う出力プラグイン…
+svtAV1guiEx 1.23       2023-10-22  rigaya    Plugin/Output 拡張 SVT-AV1 出力(GUI) Ex SVT-AV1を使用してエンコードを行う出力プラグイン
+VCEEnc      8.21       2023-12-10  rigaya    Plugin/Output                           AMDのVCE(VideoCodecEngine)を使用してエンコードを行う出力プラグイン…
+VVenCguiEx  0.00-beta4 2023-05-09  rigaya    Plugin/Output 拡張 VVenC 出力(GUI) Ex   VVenCを使用してエンコードを行う出力プラグイン
+x264guiEx   3.27       2023-12-06  rigaya    Plugin/Output 拡張 x264 出力(GUI) Ex    x264を使用してエンコードを行う出力プラグイン…
+x265guiEx   4.16       2023-10-12  rigaya    Plugin/Output 拡張 x265 出力(GUI) Ex    x265を使用してエンコードを行う出力プラグイン…
+```
+
+</details>
+
+- Identifier（識別子）、DisplayName（表示名）またはDescription（説明）のいずれかに「エンコード」を含む文字列が表示されました。
+- パッケージの操作（インストール、削除など）にはここに表示された識別子を使用します。
+
+### パッケージをアップグレードする
+
+- 最初に `update` コマンドを使用してパッケージマニフェストを最新の情報に更新します。
+- 全てのパッケージをアップグレードしたいときは、以下のコマンドを実行します。
+
+```shell
+upgrade
+```
+
+- 指定したパッケージのみをアップグレードすることもできます。
+  - この場合の動作は `install` コマンドと同様です。
+
+### パッケージを再インストールする
+
+- パッケージを構成するファイルの一部を削除してしまったなどの理由により、パッケージを再インストールしたいときは以下のコマンドを実行します。
+
+```shell
+reinstall
+```
+
+- インストールされているすべてのパッケージに対して `remove` と `install` を自動的に行いますが、`remove` 時の依存関係チェックがスキップされます。
+- パッケージを指定することもできます。
 
 ## 利用可能なコマンド
 
@@ -71,8 +171,9 @@ BUtlerはAviUtl用のコマンドラインパッケージマネージャーで�
 
 - 指定されたパッケージをインストールします。
 - バージョンを指定するとそのバージョンで固定され、アップグレードされることはありません。
-- 例: [aviutl/](https://scrapbox.io/aviutl/セットアップ) の推奨構成をインストールする
-  ```
+- 例：[aviutl/](https://scrapbox.io/aviutl/セットアップ) の推奨構成をインストールする
+
+  ```shell
   install aviutl exedit=0.92 L-SMASH-Works InputPipePlugin easymp4 patch.aul
   ```
 
