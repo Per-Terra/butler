@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 [CmdletBinding()]
 
-$ScriptVersion = '0.1.0'
+$ScriptVersion = '0.1.1'
 
 $Commands = [ordered]@{
   help        = @{
@@ -52,6 +52,14 @@ $Commands = [ordered]@{
     Key         = 'upgrade'
     Description = 'パッケージをアップグレードする'
   }
+  selfupdate  = @{
+    Key         = 'selfupdate'
+    Description = 'BUtlerの更新を確認する'
+  }
+  selfupgrade = @{
+    Key         = 'selfupgrade'
+    Description = 'BUtlerをアップグレードする'
+  }
   interactive = @{
     Key         = 'interactive'
     Description = '対話型シェルモードで実行する'
@@ -72,6 +80,13 @@ if (-not $Command) {
 
 if ($Command -eq $Commands.interactive.Key) {
   Write-Host "BUtler $ScriptVersion Interactive Mode"
+  Write-Host
+  try {
+    . $MyInvocation.MyCommand.Path 'selfupdate'
+  }
+  catch {
+    Write-Host -ForegroundColor Red $_.ToString()
+  }
   Write-Host
   try {
     . $MyInvocation.MyCommand.Path 'update'
@@ -104,6 +119,12 @@ if ($Command -eq $Commands.interactive.Key) {
   exit 0
 }
 
+if ($Command -notin $Commands.Values.Key) {
+  Write-Host -ForegroundColor Red "コマンドが見つかりません: $Command"
+  Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 <コマンド>'
+  exit 1
+}
+
 if ($Command -eq $Commands.help.Key) {
   Write-Host "BUtler $ScriptVersion"
   Write-Host '使用方法: .\butler.ps1 <コマンド>'
@@ -119,10 +140,75 @@ if ($Command -eq $Commands.help.Key) {
   exit 0
 }
 
-if ($Command -notin $Commands.Values.Key) {
-  Write-Host -ForegroundColor Red "コマンドが見つかりません: $Command"
-  Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 <コマンド>'
-  exit 1
+if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
+  $upgrade = $Command -eq $Commands.selfupgrade.Key
+  Write-Host -NoNewline 'BUtlerの更新を確認しています...'
+  try {
+    $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/Per-Terra/butler/releases/latest'
+    $latestVersion = $latestRelease.tag_name
+  }
+  catch {
+    Write-Host ' 失敗'
+    Write-Error -Message $_.ToString()
+    exit 1
+  }
+
+  if ($latestVersion -eq "v$ScriptVersion") {
+    Write-Host ' 最新の状態です'
+    exit 0
+  }
+
+  Write-Host ' 完了'
+  Write-Host -ForegroundColor Yellow "更新が利用可能です: $latestVersion"
+
+  Write-Host -ForegroundColor DarkGray '------'
+  Write-Host $latestRelease.body
+  Write-Host -ForegroundColor DarkGray '------'
+
+  if (-not $upgrade) {
+    Write-Host -ForegroundColor Yellow 'selfupgrade コマンドで更新を適用できます'
+    exit 0
+  }
+
+  Write-Host '更新を開始します...'
+
+  $butlerDirectory = $PSScriptRoot
+
+  $zipUrl = "https://github.com/Per-Terra/butler/archive/refs/tags/$latestVersion.zip"
+  $zipFile = New-TemporaryFile
+  $extractPath = Join-Path $env:TEMP "butler-$latestVersion"
+
+  Write-Host -NoNewline 'ファイルをダウンロードしています...'
+  try {
+    Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile
+  }
+  catch {
+    Write-Error -Message $_.ToString()
+    Write-Host ' 失敗'
+    Read-Host -Prompt 'Enterキーを押して終了します...'
+    exit 1
+  }
+  Write-Host ' 完了'
+
+  Write-Host -NoNewline 'ファイルを展開しています...'
+  if (Test-Path -LiteralPath $extractPath -PathType Container) {
+    Remove-Item -Path $extractPath -Recurse -Force
+  }
+  Expand-Archive -Path $zipFile -DestinationPath $extractPath
+  Write-Host ' 完了'
+
+  Write-Host -NoNewline 'ファイルを移動しています...'
+  Get-ChildItem -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+    Move-Item -Path $_.FullName -Destination $butlerDirectory -Force
+  }
+  Write-Host ' 完了'
+
+  Write-Host -NoNewline '一時ファイルを削除しています...'
+  Remove-Item -Path $zipFile -Force
+  Remove-Item -Path $extractPath -Recurse -Force
+  Write-Host ' 完了'
+
+  Write-Host '更新が完了しました'
 }
 
 ### original: https://github.com/microsoft/winget-pkgs/blob/4e76aed0d59412f0be0ecfefabfa14b5df05bec4/Tools/YamlCreate.ps1#L135-L149

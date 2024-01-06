@@ -66,8 +66,11 @@ if (Test-Path -LiteralPath $extractPath -PathType Container) {
 Expand-Archive -Path $zipFile -DestinationPath $extractPath
 Write-Host ' 完了'
 
-Write-Host -NoNewline 'ファイルをコピーしています...'
-Copy-Item -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') -Destination $installPath -Recurse -Force
+Write-Host -NoNewline 'ファイルを移動しています...'
+Get-ChildItem -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+  Move-Item -Path $_.FullName -Destination $installPath -Force
+}
+
 Write-Host ' 完了'
 
 Write-Host -NoNewline 'ショートカットを作成しています...'
