@@ -205,7 +205,7 @@ update
 
 ### `selfupdate`, `selfupgrade`
 
-- BUtler自体の更新を確認または、適用します。
+- BUtler自体の更新を確認、または適用します。
 
 ### `interactive`
 
