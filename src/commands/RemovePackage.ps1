@@ -31,7 +31,7 @@ $filesToRemove = $managedFiles | Where-Object { $_.Identifier -eq $Identifier }
 foreach ($fileToRemove in $filesToRemove) {
   $path = Join-Path -Path $RootDirectory -ChildPath $fileToRemove.Path
   if (Test-Path -LiteralPath $path -PathType Leaf) {
-    if ($Purge -or (-not $fileToRemove.ConfFile)) {
+    if ($Purge -or (-not $fileToRemove.IsConfFile)) {
       Write-Debug -Message "ファイルを削除しています: $path"
       Remove-Item -LiteralPath $path -Force
     }
