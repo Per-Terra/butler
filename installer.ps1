@@ -1,10 +1,15 @@
 $ZipUrl = 'https://codeload.github.com/Per-Terra/butler/zip/refs/heads/main'
-$ZipFileName = 'butler-main.zip'
-$ZipFilePath = Join-Path $env:TEMP $ZipFileName
+$ZipFIle = New-TemporaryFile
 $ExtractPath = Join-Path $env:TEMP 'butler-main/'
 $InstallPath = Join-Path -Path (Get-Location) -ChildPath '.butler/'
 
+# 旧インストーラーの残骸を削除
+if (Test-Path -LiteralPath (Join-Path -Path $env:TEMP -ChildPath 'butler-main.zip') -PathType Leaf) {
+  Remove-Item -Path (Join-Path -Path $env:TEMP -ChildPath 'butler-main.zip') -Force
+}
+
 Write-Host 'BUtlerをインストールしています...'
+Write-Host
 
 if (Test-Path -LiteralPath $InstallPath -PathType Container) {
   Write-Host '.butler フォルダーが既に存在します'
@@ -21,50 +26,44 @@ else {
   $null = New-Item -Path $InstallPath -ItemType Directory -Force
 }
 
-$isZipDownloaded = $false
-if (Test-Path -LiteralPath $ZipFilePath -PathType Leaf) {
-  Write-Host 'ZIPアーカイブが既に存在します'
-  Write-Host -NoNewline '再ダウンロードしますか? [y/N]'
-  do {
-    $answer = Read-Host
-  } until ([string]::IsNullOrEmpty($answer) -or ($answer -in @('y', 'N')))
-  if ($answer -eq 'y') {
-    Remove-Item -Path $ZipFilePath -Force
-  }
-  else {
-    $isZipDownloaded = $true
-  }
+Write-Host -NoNewline 'ファイルをダウンロードしています...'
+try {
+  Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipFIle
 }
-
-if (-not $isZipDownloaded) {
-  Write-Host "ファイルをダウンロードしています: $ZipUrl"
-  try {
-    Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipFilePath
-  }
-  catch {
-    Write-Error -Message $_.ToString()
-    Write-Host 'ダウンロードに失敗しました'
-    exit 1
-  }
+catch {
+  Write-Error -Message $_.ToString()
+  Write-Host ' 失敗'
+  Start-Sleep -Seconds 5
+  exit 1
 }
+Write-Host ' 完了'
 
-Write-Host 'ファイルを展開しています...'
+Write-Host -NoNewline 'ファイルを展開しています...'
 if (Test-Path -LiteralPath $ExtractPath -PathType Container) {
   Remove-Item -Path $ExtractPath -Recurse -Force
 }
-Expand-Archive -Path $ZipFilePath -DestinationPath $ExtractPath
+Expand-Archive -Path $ZipFIle -DestinationPath $ExtractPath
+Write-Host ' 完了'
 
-Write-Host 'ファイルをコピーしています...'
+Write-Host -NoNewline 'ファイルをコピーしています...'
 Copy-Item -Path (Join-Path -Path $ExtractPath -ChildPath 'butler-main/src/*') -Destination $InstallPath -Recurse -Force
+Write-Host ' 完了'
 
-Write-Host 'ショートカットを作成しています...'
+Write-Host -NoNewline 'ショートカットを作成しています...'
 $ShortcutPath = 'BUtler.lnk'
 $ShortcutTarget = Join-Path -Path $InstallPath -ChildPath 'butler.bat'
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = $ShortcutTarget
 $Shortcut.Save()
+Write-Host ' 完了'
 
+Write-Host -NoNewline 'ファイルを削除しています...'
+Remove-Item -Path $ZipFIle -Force
+Remove-Item -Path $ExtractPath -Recurse -Force
+Write-Host ' 完了'
+
+Write-Host
 Write-Host 'インストールが完了しました'
 
 Start-Sleep -Seconds 3
