@@ -215,7 +215,7 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
 # 必要なモジュールのインストール
 $scriptDependencies = @('7Zip4Powershell', 'powershell-yaml')
 $scriptDependencies | ForEach-Object {
-  if (-not(Get-Module -ListAvailable -Name $_)) {
+  if (-not (Get-Module -ListAvailable -Name $_)) {
     try {
       Install-Module -Name $_ -Force -Repository PSGallery -Scope CurrentUser
     }
@@ -224,7 +224,7 @@ $scriptDependencies | ForEach-Object {
     }
     finally {
       # Double check that it was installed properly
-      if (-not(Get-Module -ListAvailable -Name $_)) {
+      if (-not (Get-Module -ListAvailable -Name $_)) {
         throw "'$_' が見つかりません"
       }
     }
@@ -239,7 +239,7 @@ $ConsoleWidth = $Host.UI.RawUI.BufferSize.Width
 $RootDirectory = Split-Path -Path $PSScriptRoot -Parent
 $SourcesPath = Join-Path -Path $PSScriptRoot -ChildPath 'sources.yaml'
 $ManagedFilesPath = Join-Path -Path $PSScriptRoot -ChildPath 'files.csv'
-$managedPackagesPath = Join-Path -Path $PSScriptRoot -ChildPath 'packages.csv'
+$ManagedPackagesPath = Join-Path -Path $PSScriptRoot -ChildPath 'packages.csv'
 $PackagesDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'packages'
 $CacheDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'cache'
 $ManifestsCacheDirectory = Join-Path -Path $CacheDirectory -ChildPath 'manifests'
@@ -254,7 +254,7 @@ if (-not (Test-Path -Path $SourcesPath)) {
   $ManagedFilesPath,
   $ManagedPackagesPath
 ) | ForEach-Object {
-  if (-not (Test-Path -Path $_)) {
+  if (-not (Test-Path -Path $_ -PathType Leaf)) {
     $null = New-Item -Path $_ -ItemType File
   }
 }
@@ -291,10 +291,10 @@ $SourceUrls | ForEach-Object {
 }
 
 try {
-  if (-not (Test-Path -Path $managedPackagesPath)) {
-    $null = New-Item -Path $managedPackagesPath -ItemType File
+  if (-not (Test-Path -Path $ManagedPackagesPath)) {
+    $null = New-Item -Path $ManagedPackagesPath -ItemType File
   }
-  $script:managedPackages = @(Import-Csv -LiteralPath $managedPackagesPath)
+  $script:managedPackages = @(Import-Csv -LiteralPath $ManagedPackagesPath)
 }
 catch {
   Write-Error -Message $_.ToString()
@@ -428,13 +428,13 @@ if ($Command -eq $Commands.search.Key) {
 
 if ($Command -eq $Commands.show.Key) {
   if ($arguments.Count -lt 2) {
-    Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
-    Write-Host -ForegroundColor Red '使い方: .\butler.ps1 show <パッケージ名>[=<バージョン>]'
+    Write-Host -ForegroundColor Red 'パッケージ識別子が指定されていません'
+    Write-Host -ForegroundColor Red '使い方: .\butler.ps1 show <パッケージ識別子>[=<バージョン>]'
     exit 1
   }
   elseif ($arguments.Count -gt 2) {
-    Write-Host -ForegroundColor Red 'パッケージ名が複数指定されています'
-    Write-Host -ForegroundColor Red '使い方: .\butler.ps1 show <パッケージ名>[=<バージョン>]'
+    Write-Host -ForegroundColor Red 'パッケージ識別子が複数指定されています'
+    Write-Host -ForegroundColor Red '使い方: .\butler.ps1 show <パッケージ識別子>[=<バージョン>]'
     exit 1
   }
   $packageIdentifier = $arguments[1]
@@ -531,8 +531,8 @@ function Split-PackageRelationShip {
 if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   $upgrade = $Command -eq $Commands.upgrade.Key
   if (-not $upgrade -and ($arguments.Count -lt 2)) {
-    Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
-    Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 install <パッケージ名>[=<バージョン>] [<パッケージ名>[=<バージョン>]]...'
+    Write-Host -ForegroundColor Red 'パッケージ識別子が指定されていません'
+    Write-Host -ForegroundColor Red '使用方法: .\butler.ps1 install <パッケージ識別子>[=<バージョン>] [<パッケージ識別子>[=<バージョン>]]...'
     exit 1
   }
 
@@ -1123,11 +1123,11 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   }
 
   try {
-    (($script:managedPackages | ConvertTo-Csv -NoTypeInformation -UseQuotes Never) -join "`n") + "`n" | Set-Content -LiteralPath $managedPackagesPath -Force -NoNewline
+    (($script:managedPackages | ConvertTo-Csv -NoTypeInformation -UseQuotes Never) -join "`n") + "`n" | Set-Content -LiteralPath $ManagedPackagesPath -Force -NoNewline
   }
   catch {
-    Write-Error -Message "ファイルの書き込みに失敗しました: $managedPackagesPath"
-    throw
+    Write-Error -Message $_.ToString()
+    throw "ファイルの書き込みに失敗しました: $ManagedPackagesPath"
   }
 }
 
@@ -1184,8 +1184,8 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
   $purge = $Command -in $Commands.purge.Key, $Commands.autopurge.Key
 
   if (-not $auto -and ($arguments.Count -lt 2)) {
-    Write-Host -ForegroundColor Red 'パッケージ名が指定されていません'
-    Write-Host -ForegroundColor Red "使用方法: .\butler.ps1 $Command <パッケージ名> [<パッケージ名>]..."
+    Write-Host -ForegroundColor Red 'パッケージ識別子が指定されていません'
+    Write-Host -ForegroundColor Red "使用方法: .\butler.ps1 $Command <パッケージ識別子> [<パッケージ識別子>]..."
     exit 1
   }
 
@@ -1211,7 +1211,7 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
     }
     else {
       Write-Host -ForegroundColor Red "パッケージは管理されていません: $packageIdentifier"
-      exit 1
+      $packagesToRemove = @($packagesToRemove | Where-Object { $_ -ne $packageIdentifier })
     }
   }
 
@@ -1299,10 +1299,10 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
   }
 
   try {
-    (($script:managedPackages | ConvertTo-Csv -NoTypeInformation -UseQuotes Never) -join "`n") + "`n" | Set-Content -LiteralPath $managedPackagesPath -Force -NoNewline
+    (($script:managedPackages | ConvertTo-Csv -NoTypeInformation -UseQuotes Never) -join "`n") + "`n" | Set-Content -LiteralPath $ManagedPackagesPath -Force -NoNewline
   }
   catch {
-    Write-Error -Message "ファイルの書き込みに失敗しました: $managedPackagesPath"
-    throw
+    Write-Error -Message $_.ToString()
+    throw "ファイルの書き込みに失敗しました: $ManagedPackagesPath"
   }
 }
