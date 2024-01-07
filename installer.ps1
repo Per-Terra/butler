@@ -68,6 +68,9 @@ Write-Host ' 完了'
 
 Write-Host -NoNewline 'ファイルを移動しています...'
 Get-ChildItem -LiteralPath (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+  if ($_.Name -eq 'config.yaml' -and (Test-Path -LiteralPath (Join-Path -Path $installPath -ChildPath 'config.yaml') -PathType Leaf)) {
+    continue
+  }
   Move-Item -LiteralPath $_.FullName -Destination $installPath -Force
 }
 

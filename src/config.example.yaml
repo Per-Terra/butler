@@ -1,0 +1,23 @@
+# =========================================================
+# BUtler Configuration File
+# 設定を反映するには、BUtlerを再起動してください。
+# または、BUtlerを実行しているシェルを再起動してください。
+# =========================================================
+
+# シンボリックリンクを使用するかどうか (true/false)
+# true: シンボリックリンクを使用します(デフォルト)
+# false: ファイルを常にコピーします
+UseSymbolicLinks: true
+
+# === 対話型シェルモードの設定 ===
+Interactive:
+
+  # 対話型シェルモード起動時に selfupdate コマンドを実行するかどうか (true/false)
+  # true: selfupdate コマンドを実行する(デフォルト)
+  # false: selfupdate コマンドを実行しない
+  AutoSelfUpdate: true
+
+  # 対話型シェルモード起動時に update コマンドを実行するかどうか (true/false)
+  # true: update コマンドを実行する(デフォルト)
+  # false: update コマンドを実行しない
+  AutoUpdate: true

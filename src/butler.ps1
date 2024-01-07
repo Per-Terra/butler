@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 [CmdletBinding()]
 
-$ScriptVersion = '0.1.1'
+$ScriptVersion = '0.2.0'
 
 $Commands = [ordered]@{
   help        = @{
@@ -66,6 +66,18 @@ $Commands = [ordered]@{
   }
 }
 
+$ConsoleWidth = $Host.UI.RawUI.BufferSize.Width
+
+$RootDirectory = Split-Path -Path $PSScriptRoot -Parent
+$ConfigPath = Join-Path -Path $PSScriptRoot -ChildPath 'config.yaml'
+$SourcesPath = Join-Path -Path $PSScriptRoot -ChildPath 'sources.yaml'
+$ManagedFilesPath = Join-Path -Path $PSScriptRoot -ChildPath 'files.csv'
+$ManagedPackagesPath = Join-Path -Path $PSScriptRoot -ChildPath 'packages.csv'
+$PackagesDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'packages'
+$CacheDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'cache'
+$ManifestsCacheDirectory = Join-Path -Path $CacheDirectory -ChildPath 'manifests'
+$PackagesCacheDirectory = Join-Path -Path $CacheDirectory -ChildPath 'packages'
+
 if ($args[0] -is [array]) {
   $arguments = $args[0]
 }
@@ -78,23 +90,53 @@ if (-not $Command) {
   $Command = $Commands.interactive.Key
 }
 
+# 対話型シェルモードで必要なのでconfigだけはここで読み込む
+if (-not $Config) {
+  if (Test-Path -LiteralPath $ConfigPath -PathType Leaf) {
+    try {
+      $Config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Yaml
+    }
+    catch {
+      Write-Error -Message $_.ToString()
+      Write-Host -ForegroundColor Red "$ConfigPath の読み込めません"
+      Write-Host -ForegroundColor Red 'デフォルトの設定でで続行します'
+    }
+  }
+  else {
+    Write-Host -ForegroundColor Red "$ConfigPath が見つかりません"
+    Write-Host -ForegroundColor Red 'デフォルトの設定でで続行します'
+  }
+}
+
+$Config = @{
+  UseSymbolicLinks = ($null -eq $Config.UseSymbolicLinks) -or $Config.UseSymbolicLinks
+  Interactive = @{
+    AutoSelfUpdate = ($null -eq $Config.Interactive.AutoSelfUpdate) -or $Config.Interactive.AutoSelfUpdate
+    AutoUpdate     = ($null -eq $Config.Interactive.AutoUpdate) -or $Config.Interactive.AutoUpdate
+  }
+}
+
 if ($Command -eq $Commands.interactive.Key) {
-  Write-Host "BUtler $ScriptVersion Interactive Mode"
+  Write-Host "BUtler $ScriptVersion Interactive Shell Mode"
   Write-Host
-  try {
-    . $MyInvocation.MyCommand.Path 'selfupdate'
+  if ($Config.Interactive.AutoSelfUpdate) {
+    try {
+      . $MyInvocation.MyCommand.Path 'selfupdate'
+    }
+    catch {
+      Write-Host -ForegroundColor Red $_.ToString()
+    }
+    Write-Host
   }
-  catch {
-    Write-Host -ForegroundColor Red $_.ToString()
+  if ($Config.Interactive.AutoUpdate) {
+    try {
+      . $MyInvocation.MyCommand.Path 'update'
+    }
+    catch {
+      Write-Host -ForegroundColor Red $_.ToString()
+    }
+    Write-Host
   }
-  Write-Host
-  try {
-    . $MyInvocation.MyCommand.Path 'update'
-  }
-  catch {
-    Write-Host -ForegroundColor Red $_.ToString()
-  }
-  Write-Host
   Write-Host 'help で使用方法を表示します'
   Write-Host '終了する場合は exit と入力するか、Ctrl+C を押してください'
   $exit = $false
@@ -199,6 +241,9 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
 
   Write-Host -NoNewline 'ファイルを移動しています...'
   Get-ChildItem -LiteralPath (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+    if ($_.Name -eq 'config.yaml' -and (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
+      continue
+    }
     Move-Item -LiteralPath $_.FullName -Destination $butlerDirectory -Force
   }
   Write-Host ' 完了'
@@ -210,6 +255,8 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
 
   Write-Host '更新が完了しました'
 }
+
+# 初期化
 
 ### original: https://github.com/microsoft/winget-pkgs/blob/4e76aed0d59412f0be0ecfefabfa14b5df05bec4/Tools/YamlCreate.ps1#L135-L149
 # 必要なモジュールのインストール
@@ -234,39 +281,15 @@ $scriptDependencies | ForEach-Object {
 
 . (Join-Path -Path $PSScriptRoot -ChildPath './lib/Get-Sha256.ps1')
 
-$ConsoleWidth = $Host.UI.RawUI.BufferSize.Width
+if (-not (Test-Path -LiteralPath $SourcesPath -PathType Leaf)) {
+  Write-Host -ForegroundColor Yellow "$SourcesPath が見つかりません"
+  Write-Host -ForegroundColor Yellow -NoNewline 'sources.yaml を作成しています...'
+  @"
+# BUtler Default Repository: https://github.com/Per-Terra/butler-pkgs
+- https://github.com/Per-Terra/butler-pkgs/releases/latest/download/
 
-$RootDirectory = Split-Path -Path $PSScriptRoot -Parent
-$SourcesPath = Join-Path -Path $PSScriptRoot -ChildPath 'sources.yaml'
-$ManagedFilesPath = Join-Path -Path $PSScriptRoot -ChildPath 'files.csv'
-$ManagedPackagesPath = Join-Path -Path $PSScriptRoot -ChildPath 'packages.csv'
-$PackagesDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'packages'
-$CacheDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'cache'
-$ManifestsCacheDirectory = Join-Path -Path $CacheDirectory -ChildPath 'manifests'
-$PackagesCacheDirectory = Join-Path -Path $CacheDirectory -ChildPath 'packages'
-
-if (-not (Test-Path -Path $SourcesPath)) {
-  Write-Host -ForegroundColor Red "$SourcesPath が見つかりません"
-  exit 1
-}
-
-@(
-  $ManagedFilesPath,
-  $ManagedPackagesPath
-) | ForEach-Object {
-  if (-not (Test-Path -Path $_ -PathType Leaf)) {
-    $null = New-Item -Path $_ -ItemType File
-  }
-}
-
-@(
-  $CacheDirectory
-  $ManifestsCacheDirectory
-  $PackagesCacheDirectory
-) | ForEach-Object {
-  if (-not (Test-Path -Path $_ -PathType Container)) {
-    $null = New-Item -Path $_ -ItemType Directory
-  }
+"@ -replace "`r`n", "`n" | Set-Content -LiteralPath $SourcesPath -NoNewline
+  Write-Host -ForegroundColor Yellow ' 完了'
 }
 
 try {
@@ -290,10 +313,26 @@ $SourceUrls | ForEach-Object {
   }
 }
 
-try {
-  if (-not (Test-Path -Path $ManagedPackagesPath)) {
-    $null = New-Item -Path $ManagedPackagesPath -ItemType File
+@(
+  $ManagedFilesPath,
+  $ManagedPackagesPath
+) | ForEach-Object {
+  if (-not (Test-Path -LiteralPath $_ -PathType Leaf)) {
+    $null = New-Item -Path $_ -ItemType File
   }
+}
+
+@(
+  $CacheDirectory
+  $ManifestsCacheDirectory
+  $PackagesCacheDirectory
+) | ForEach-Object {
+  if (-not (Test-Path -LiteralPath $_ -PathType Container)) {
+    $null = New-Item -Path $_ -ItemType Directory
+  }
+}
+
+try {
   $script:managedPackages = @(Import-Csv -LiteralPath $ManagedPackagesPath)
 }
 catch {
@@ -322,7 +361,7 @@ if (-not $PackageManifests) {
       }
       catch {
         Write-Error -Message $_.ToString()
-        Write-Host -ForegroundColor Red ' 失敗'
+        Write-Host ' 失敗'
         Write-Host -ForegroundColor Red "release.yaml を読み込めません: $releasePath"
         Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
         exit 1
@@ -334,14 +373,14 @@ if (-not $PackageManifests) {
           $file = Get-Content -LiteralPath $filePath -Raw | ConvertFrom-Json
         }
         catch {
-          Write-Host -ForegroundColor Red ' 失敗'
+          Write-Host ' 失敗'
           Write-Error -Message $_.ToString()
           Write-Host -ForegroundColor Red "ファイルを読み込めません: $filePath"
           Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
           exit 1
         }
         if (-not $file) {
-          Write-Host -ForegroundColor Red ' 失敗'
+          Write-Host ' 失敗'
           Write-Error -Message $_.ToString()
           Write-Host -ForegroundColor Red "ファイルを読み込めません: $filePath"
           Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
@@ -358,7 +397,7 @@ if (-not $PackageManifests) {
       }
     }
     else {
-      Write-Host -ForegroundColor Red ' 失敗'
+      Write-Host ' 失敗'
       Write-Error -Message $_.ToString()
       Write-Host -ForegroundColor Red "release.yaml が見つかりません: $releasePath"
       Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
@@ -367,6 +406,8 @@ if (-not $PackageManifests) {
   }
   Write-Host ' 完了'
 }
+
+# コマンド別の処理
 
 if ($Command -eq $Commands.list.Key) {
   $script:managedPackages | Where-Object { $_.Status -eq 'Installed' } | ForEach-Object {
@@ -1067,7 +1108,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
       }
     }
 
-    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
+    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath -NoSymbolicLink:(-not $Config.UseSymbolicLinks)
 
     $script:managedPackages += [pscustomobject]@{
       Identifier       = $packageIdentifier
@@ -1110,7 +1151,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
       }
     }
 
-    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
+    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath -NoSymbolicLink:(-not $Config.UseSymbolicLinks)
 
     $script:managedPackages += [pscustomobject]@{
       Identifier       = $packageIdentifier
@@ -1174,7 +1215,7 @@ if ($Command -eq $Commands.reinstall.Key) {
     }
 
     & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
-    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
+    & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath -NoSymbolicLink:(-not $Config.UseSymbolicLinks)
   }
 }
 
