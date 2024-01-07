@@ -235,10 +235,10 @@ update
 ### 項目
 
 - `UseSymbolicLinks`：シンボリックリンクを使用するかどうか
-  - 使用しない場合は常にファイルがコピーされます。
-  - 開発者モードを有効にしない場合、NTFS以外のファイルシステムを利用している場合は `false` にセットします。
-- `Interactive.AutoSelfUpdate`：起動時に自動で `selfupdate` コマンドを実行するかどうか
-- `Interactive.AutoUpdate`：起動時に自動で `update` コマンドを実行するかどうか
+  - `false` にセットした場合、ファイルは常にコピーされます。
+  - 開発者モードを有効にしない場合、またはNTFS以外のファイルシステムを利用している場合は `false` にセットします。
+- `Interactive.AutoSelfUpdate`：対話型シェル起動時に自動で `selfupdate` コマンドを実行するかどうか
+- `Interactive.AutoUpdate`：対話型シェル起動時に自動で `update` コマンドを実行するかどうか
 
 ## 付録
 
