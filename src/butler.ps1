@@ -257,6 +257,7 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
   Write-Host ' 完了'
 
   Write-Host '更新が完了しました'
+  exit 0
 }
 
 # 初期化
@@ -408,6 +409,50 @@ if (-not $PackageManifests) {
     }
   }
   Write-Host ' 完了'
+}
+
+if ($Command -ne $Commands.update.Key) {
+  # 実行中のAviUtlがないか確認
+  $processes = Get-Process -Name 'aviutl' -ErrorAction SilentlyContinue | Where-Object { $_.Path -like (Join-Path -Path $RootDirectory -ChildPath '*') }
+
+  if ($processes) {
+    Write-Host
+    $processes | ForEach-Object {
+      Write-Host -ForegroundColor Red "AviUtlは実行中です: $($_.Name) ($($_.Id))"
+    }
+    Write-Host -ForegroundColor Red 'このまま続行すると、パッケージのインストールや削除が正常に完了しない可能性があります'
+    do {
+      Write-Host -NoNewline 'プロセスを終了しますか? [y=終了シグナルを送信する/n=このまま続行する/C=操作をキャンセルする] '
+      $answer = Read-Host
+    } until ([string]::IsNullOrEmpty($answer) -or $answer -in @('y', 'n', 'C'))
+    if (-not $answer -or ($answer -eq 'C')) {
+      Write-Host '操作をキャンセルしました'
+      exit 0
+    }
+    if ($answer -eq 'y') {
+      $processes | ForEach-Object {
+        try {
+          Stop-Process -Id $_.Id
+          Write-Host "終了シグナルを送信しました: $($_.Name) ($($_.Id))"
+        }
+        catch {
+          Write-Host -ForegroundColor Red $_.ToString()
+        }
+        try {
+          Write-Host -NoNewline 'プロセスの終了を待機しています...'
+          $_ | Wait-Process -Timeout 20
+        }
+        catch {
+          Write-Host
+          Write-Host -ForegroundColor Red $_.ToString()
+          Write-Host -ForegroundColor Red "タイムアウトしました: $($_.Name) ($($_.Id))"
+          exit 1
+        }
+        Write-Host ' 完了'
+      }
+    }
+    Write-Host
+  }
 }
 
 # コマンド別の処理
@@ -1173,6 +1218,8 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
     Write-Error -Message $_.ToString()
     throw "ファイルの書き込みに失敗しました: $ManagedPackagesPath"
   }
+
+  exit 0
 }
 
 if ($Command -eq $Commands.reinstall.Key) {
@@ -1220,6 +1267,8 @@ if ($Command -eq $Commands.reinstall.Key) {
     & (Join-Path -Path $PSScriptRoot -ChildPath './commands/RemovePackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath
     & (Join-Path -Path $PSScriptRoot -ChildPath './commands/InstallPackage.ps1') -Identifier $packageIdentifier -Version $packageVersion -Manifest $manifest -RootDirectory $RootDirectory -CacheDirectory $PackagesCacheDirectory -PackageDirectory $packageDirectory -ManagedFilesPath $ManagedFilesPath -NoSymbolicLink:(-not $Config.UseSymbolicLinks)
   }
+
+  exit 0
 }
 
 if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove.Key, $Commands.autopurge.Key) {
@@ -1349,4 +1398,6 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
     Write-Error -Message $_.ToString()
     throw "ファイルの書き込みに失敗しました: $ManagedPackagesPath"
   }
+
+  exit 0
 }
