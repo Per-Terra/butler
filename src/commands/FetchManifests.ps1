@@ -9,10 +9,10 @@ param (
 $ReleaseUrl = [System.Uri]::new($BaseUrl, './release.yaml')
 $CacheDirectory = Join-Path -Path $PSScriptRoot -ChildPath '../cache'
 $ManifestsCacheDirectory = Join-Path -Path $CacheDirectory -ChildPath 'manifests'
-if (-not (Test-Path -Path $CacheDirectory -PathType Container)) {
+if (-not (Test-Path -LiteralPath $CacheDirectory -PathType Container)) {
   $null = New-Item -Path $CacheDirectory -ItemType Directory
 }
-if (-not (Test-Path -Path $ManifestsCacheDirectory -PathType Container)) {
+if (-not (Test-Path -LiteralPath $ManifestsCacheDirectory -PathType Container)) {
   $null = New-Item -Path $ManifestsCacheDirectory -ItemType Directory
 }
 
@@ -20,9 +20,9 @@ Write-Host "取得中: $ReleaseUrl"
 
 $releasePath = Join-Path -Path $ManifestsCacheDirectory -ChildPath "$($ReleaseUrl.Host)$($ReleaseUrl.AbsolutePath)"
 $cachedRelease = $null
-if (Test-Path -Path $releasePath -PathType Leaf) {
+if (Test-Path -LiteralPath $releasePath -PathType Leaf) {
   try {
-    $cachedRelease = Get-Item -Path $releasePath | Get-Content -Raw | ConvertFrom-Yaml
+    $cachedRelease = Get-Item -LiteralPath $releasePath | Get-Content -Raw | ConvertFrom-Yaml
   }
   catch {
     Write-Warning -Message "キャッシュの読み込みに失敗しました: $releasePath"
@@ -30,7 +30,7 @@ if (Test-Path -Path $releasePath -PathType Leaf) {
     Write-Warning -Message 'キャッシュを使用せずに続行します'
   }
 }
-elseif (-not (Test-Path -Path (Split-Path -Path $releasePath -Parent) -PathType Container)) {
+elseif (-not (Test-Path -LiteralPath (Split-Path -Path $releasePath -Parent) -PathType Container)) {
   $null = New-Item -Path (Split-Path -Path $releasePath -Parent) -ItemType Directory
 }
 
@@ -48,7 +48,7 @@ $isCacheAvailable = $null
 if ($cachedRelease -and ([datetime]$cachedRelease.Date -ge [datetime]$release.Date)) {
   $release.Files | ForEach-Object {
     $cachedFilePath = Join-Path -Path (Split-Path -Path $releasePath -Parent) -ChildPath $_.Name
-    if (Test-Path -Path $cachedFilePath) {
+    if (Test-Path -LiteralPath $cachedFilePath) {
       $sha256 = $cachedFilePath | Get-Sha256
       if ($sha256 -eq $_.Sha256) {
         $isCacheAvailable = $true
@@ -66,7 +66,7 @@ if ($cachedRelease -and ([datetime]$cachedRelease.Date -ge [datetime]$release.Da
 }
 else {
   $isCacheAvailable = $false
-  Get-ChildItem -Path (Split-Path -Path $releasePath -Parent) -Exclude 'release.yaml' -Recurse | Remove-Item -Force -Recurse
+  Get-ChildItem -LiteralPath (Split-Path -Path $releasePath -Parent) -Exclude 'release.yaml' -Recurse | Remove-Item -Force -Recurse
 }
 
 if ($isCacheAvailable) {

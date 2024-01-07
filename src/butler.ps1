@@ -192,20 +192,20 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
 
   Write-Host -NoNewline 'ファイルを展開しています...'
   if (Test-Path -LiteralPath $extractPath -PathType Container) {
-    Remove-Item -Path $extractPath -Recurse -Force
+    Remove-Item -LiteralPath $extractPath -Recurse -Force
   }
-  Expand-Archive -Path $zipFile -DestinationPath $extractPath
+  Expand-Archive -LiteralPath $zipFile -DestinationPath $extractPath
   Write-Host ' 完了'
 
   Write-Host -NoNewline 'ファイルを移動しています...'
-  Get-ChildItem -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
-    Move-Item -Path $_.FullName -Destination $butlerDirectory -Force
+  Get-ChildItem -LiteralPath (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+    Move-Item -LiteralPath $_.FullName -Destination $butlerDirectory -Force
   }
   Write-Host ' 完了'
 
   Write-Host -NoNewline '一時ファイルを削除しています...'
-  Remove-Item -Path $zipFile -Force
-  Remove-Item -Path $extractPath -Recurse -Force
+  Remove-Item -LiteralPath $zipFile -Force
+  Remove-Item -LiteralPath $extractPath -Recurse -Force
   Write-Host ' 完了'
 
   Write-Host '更新が完了しました'
@@ -270,7 +270,7 @@ if (-not (Test-Path -Path $SourcesPath)) {
 }
 
 try {
-  $SourceUrls = [System.Uri[]](Get-Content -Path $SourcesPath -Raw | ConvertFrom-Yaml)
+  $SourceUrls = [System.Uri[]](Get-Content -LiteralPath $SourcesPath -Raw | ConvertFrom-Yaml)
 }
 catch {
   Write-Error -Message $_.ToString()
@@ -316,9 +316,9 @@ if (-not $PackageManifests) {
   $SourceUrls | ForEach-Object {
     $releaseUrl = [System.Uri]::new($_, './release.yaml')
     $releasePath = Join-Path -Path $ManifestsCacheDirectory -ChildPath "$($releaseUrl.Host)$($releaseUrl.AbsolutePath)"
-    if (Test-Path -Path $releasePath) {
+    if (Test-Path -LiteralPath $releasePath) {
       try {
-        $release = Get-Item -Path $releasePath | Get-Content -Raw | ConvertFrom-Yaml
+        $release = Get-Item -LiteralPath $releasePath | Get-Content -Raw | ConvertFrom-Yaml
       }
       catch {
         Write-Error -Message $_.ToString()
@@ -1042,7 +1042,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
     $manifest = $PackageManifests.$packageIdentifier.$packageVersion
 
     $packageDirectory = Join-Path -Path $PackagesDirectory -ChildPath $packageIdentifier
-    if (-not (Test-Path -Path $packageDirectory -PathType Container)) {
+    if (-not (Test-Path -LiteralPath $packageDirectory -PathType Container)) {
       $null = New-Item -Path $packageDirectory -ItemType Directory
     }
 
@@ -1169,7 +1169,7 @@ if ($Command -eq $Commands.reinstall.Key) {
     $manifest = $PackageManifests.$packageIdentifier.$packageVersion
 
     $packageDirectory = Join-Path -Path $PackagesDirectory -ChildPath $packageIdentifier
-    if (-not (Test-Path -Path $packageDirectory -PathType Container)) {
+    if (-not (Test-Path -LiteralPath $packageDirectory -PathType Container)) {
       $null = New-Item -Path $packageDirectory -ItemType Directory
     }
 

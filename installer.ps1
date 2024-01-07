@@ -26,10 +26,10 @@ $installPath = Join-Path -Path (Get-Location) -ChildPath '.butler/'
 
 # 旧インストーラーの残骸を削除
 if (Test-Path -LiteralPath (Join-Path -Path $env:TEMP -ChildPath 'butler-main.zip') -PathType Leaf) {
-  Remove-Item -Path (Join-Path -Path $env:TEMP -ChildPath 'butler-main.zip') -Force
+  Remove-Item -LiteralPath (Join-Path -Path $env:TEMP -ChildPath 'butler-main.zip') -Force
 }
 if (Test-Path -LiteralPath (Join-Path -Path $env:TEMP -ChildPath 'butler-main') -PathType Container) {
-  Remove-Item -Path (Join-Path -Path $env:TEMP -ChildPath 'butler-main') -Recurse -Force
+  Remove-Item -LiteralPath (Join-Path -Path $env:TEMP -ChildPath 'butler-main') -Recurse -Force
 }
 
 if (Test-Path -LiteralPath $installPath -PathType Container) {
@@ -61,14 +61,14 @@ Write-Host ' 完了'
 
 Write-Host -NoNewline 'ファイルを展開しています...'
 if (Test-Path -LiteralPath $extractPath -PathType Container) {
-  Remove-Item -Path $extractPath -Recurse -Force
+  Remove-Item -LiteralPath $extractPath -Recurse -Force
 }
-Expand-Archive -Path $zipFile -DestinationPath $extractPath
+Expand-Archive -LiteralPath $zipFile -DestinationPath $extractPath
 Write-Host ' 完了'
 
 Write-Host -NoNewline 'ファイルを移動しています...'
-Get-ChildItem -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
-  Move-Item -Path $_.FullName -Destination $installPath -Force
+Get-ChildItem -LiteralPath (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+  Move-Item -LiteralPath $_.FullName -Destination $installPath -Force
 }
 
 Write-Host ' 完了'
@@ -83,8 +83,8 @@ $Shortcut.Save()
 Write-Host ' 完了'
 
 Write-Host -NoNewline '一時ファイルを削除しています...'
-Remove-Item -Path $zipFile -Force
-Remove-Item -Path $extractPath -Recurse -Force
+Remove-Item -LiteralPath $zipFile -Force
+Remove-Item -LiteralPath $extractPath -Recurse -Force
 Write-Host ' 完了'
 
 Write-Host
