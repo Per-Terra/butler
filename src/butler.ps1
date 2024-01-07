@@ -110,7 +110,7 @@ if (-not $Config) {
 
 $Config = @{
   UseSymbolicLinks = ($null -eq $Config.UseSymbolicLinks) -or $Config.UseSymbolicLinks
-  Interactive = @{
+  Interactive      = @{
     AutoSelfUpdate = ($null -eq $Config.Interactive.AutoSelfUpdate) -or $Config.Interactive.AutoSelfUpdate
     AutoUpdate     = ($null -eq $Config.Interactive.AutoUpdate) -or $Config.Interactive.AutoUpdate
   }
@@ -240,9 +240,12 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
   Write-Host ' 完了'
 
   Write-Host -NoNewline 'ファイルを移動しています...'
-  Get-ChildItem -LiteralPath (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+  Get-ChildItem -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') | ForEach-Object {
     if ($_.Name -eq 'config.yaml' -and (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
       continue
+    }
+    if ($_.PSIsContainer -and (Test-Path -LiteralPath (Join-Path -Path $butlerDirectory -ChildPath $_.Name) -PathType Container)) {
+      Remove-Item -LiteralPath (Join-Path -Path $butlerDirectory -ChildPath $_.Name) -Recurse -Force
     }
     Move-Item -LiteralPath $_.FullName -Destination $butlerDirectory -Force
   }

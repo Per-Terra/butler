@@ -13,7 +13,8 @@ if (-not $Version) {
   catch {
     Write-Host ' 失敗'
     Write-Error -Message $_.ToString()
-    Read-Host -Prompt 'Enterキーを押して終了します...'
+    Write-Host 'Enterキーを押して終了します...'
+    Read-Host
     exit 1
   }
   Write-Host " $Version"
@@ -67,9 +68,12 @@ Expand-Archive -LiteralPath $zipFile -DestinationPath $extractPath
 Write-Host ' 完了'
 
 Write-Host -NoNewline 'ファイルを移動しています...'
-Get-ChildItem -LiteralPath (Join-Path -Path $extractPath -ChildPath '*/src/*') -File | ForEach-Object {
+Get-ChildItem -Path (Join-Path -Path $extractPath -ChildPath '*/src/*') | ForEach-Object {
   if ($_.Name -eq 'config.yaml' -and (Test-Path -LiteralPath (Join-Path -Path $installPath -ChildPath 'config.yaml') -PathType Leaf)) {
     continue
+  }
+  if ($_.PSIsContainer -and (Test-Path -LiteralPath (Join-Path -Path $installPath -ChildPath $_.Name) -PathType Container)) {
+    Remove-Item -LiteralPath (Join-Path -Path $installPath -ChildPath $_.Name) -Recurse -Force
   }
   Move-Item -LiteralPath $_.FullName -Destination $installPath -Force
 }
