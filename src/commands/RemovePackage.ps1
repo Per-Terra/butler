@@ -78,7 +78,7 @@ if (Test-Path -LiteralPath $PackageDirectory -PathType Container) {
 }
 
 Write-Debug -Message "空のディレクトリを削除しています: $RootDirectory"
-Get-ChildItem -LiteralPath $RootDirectory -Directory -Recurse -Force | Sort-Object -Descending | ForEach-Object {
+Get-ChildItem -LiteralPath $RootDirectory -Recurse -Force -Directory | Sort-Object -Descending | ForEach-Object {
   if ((Get-ChildItem -LiteralPath $_.FullName -Force).Count -eq 0) {
     try {
       Remove-Item -LiteralPath $_.FullName -Force
