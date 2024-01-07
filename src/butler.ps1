@@ -1085,7 +1085,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
     $manifest = $PackageManifests.$packageIdentifier.$packageVersion
 
     $packageDirectory = Join-Path -Path $PackagesDirectory -ChildPath $packageIdentifier
-    if (-not (Test-Path -Path $packageDirectory -PathType Container)) {
+    if (-not (Test-Path -LiteralPath $packageDirectory -PathType Container)) {
       $null = New-Item -Path $packageDirectory -ItemType Directory
     }
 
