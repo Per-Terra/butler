@@ -39,6 +39,9 @@ function Install-File {
     [pscustomobject]$Install
   )
 
+  if (-not $Install.Strict -and ($Install.TargetPath -match '^script/([^/]*)$')) {
+    $Install.TargetPath = "script/$($Manifest.Developer[0])/$($Matches[1])"
+  }
   $targetPath = Join-Path -Path $RootDirectory -ChildPath $Install.TargetPath
 
   if (Test-Path -LiteralPath $targetPath -PathType Leaf) {

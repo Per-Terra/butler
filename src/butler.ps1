@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 [CmdletBinding()]
 
-$ScriptVersion = '0.2.0'
+$ScriptVersion = '0.3.0'
 
 $Commands = [ordered]@{
   help        = @{
