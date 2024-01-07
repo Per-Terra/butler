@@ -13,7 +13,9 @@ param (
   [Parameter(Mandatory = $true)]
   [string]$PackageDirectory,
   [Parameter(Mandatory = $true)]
-  [string]$ManagedFilesPath
+  [string]$ManagedFilesPath,
+  [Parameter(Mandatory = $false)]
+  [switch]$NoSymbolicLink
 )
 
 Write-Host "$Identifier ($Version) をインストールしています..."
@@ -79,7 +81,7 @@ function Install-File {
   if (-not (Test-Path -LiteralPath (Split-Path -Path $targetPath -Parent) -PathType Container)) {
     $null = New-Item -Path (Split-Path -Path $targetPath -Parent) -ItemType Directory
   }
-  if ($Install.Method -eq 'Copy' -or $Install.ConfFile) {
+  if ($NoSymbolicLink -or ($Install.Method -eq 'Copy') -or $Install.ConfFile) {
     Write-Debug -Message "ファイルをコピーしています: $targetPath"
     $null = Copy-Item -LiteralPath $SourcePath -Destination $targetPath -Force
   }
