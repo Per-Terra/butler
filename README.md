@@ -184,7 +184,7 @@ update
 
 - 指定されたパッケージをインストールします。
 - バージョンを指定するとそのバージョンで固定され、アップグレードされることはありません。
-- 例：[aviutl/](https://scrapbox.io/aviutl/セットアップ) の推奨構成をインストールする
+- 例：[/AviUtlの推奨構成](https://scrapbox.io/aviutl/セットアップ)をインストールする
 
   ```shell
   install aviutl exedit=0.92 L-SMASH-Works InputPipePlugin easymp4 patch.aul
