@@ -90,7 +90,7 @@ Get-ChildItem -LiteralPath $RootDirectory -Directory -Recurse -Force | Sort-Obje
 }
 
 try {
-  (($managedFiles | ConvertTo-Csv -NoTypeInformation) -join "`n") + "`n" | Set-Content -LiteralPath $ManagedFilesPath -Force -NoNewline
+  (($managedFiles | ConvertTo-Csv -NoTypeInformation -QuoteFields 'Path') -join "`n") + "`n" | Set-Content -LiteralPath $ManagedFilesPath -Force -NoNewline
 }
 catch {
   Write-Error -Message "ファイルの書き込みに失敗しました: $ManagedFilesPath"
