@@ -62,7 +62,7 @@ $Commands = [ordered]@{
   }
   interactive = @{
     Key         = 'interactive'
-    Description = '対話型シェルモードで実行する'
+    Description = '対話型シェルを起動する'
   }
 }
 
@@ -90,7 +90,7 @@ if (-not $Command) {
   $Command = $Commands.interactive.Key
 }
 
-# 対話型シェルモードで必要なのでconfigだけはここで読み込む
+# 対話型シェルの動作に必要なのでconfigだけはここで読み込む
 if (-not $Config) {
   if (Test-Path -LiteralPath $ConfigPath -PathType Leaf) {
     try {
@@ -117,7 +117,7 @@ $Config = @{
 }
 
 if ($Command -eq $Commands.interactive.Key) {
-  Write-Host "BUtler $ScriptVersion Interactive Shell Mode"
+  Write-Host "BUtler $ScriptVersion Interactive Shell"
   Write-Host
   if ($Config.Interactive.AutoSelfUpdate) {
     try {
