@@ -10,7 +10,7 @@ $Commands = [ordered]@{
   }
   list        = @{
     Key         = 'list'
-    Description = 'インストールされているパッケージを一覧表示する'
+    Description = 'インストール済みのパッケージを一覧表示する'
   }
   search      = @{
     Key         = 'search'
