@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 [CmdletBinding()]
 
-$ScriptVersion = '0.3.0'
+$ScriptVersion = '0.3.1'
 
 $Commands = [ordered]@{
   help        = @{
@@ -766,7 +766,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
                     if ($installedPackage.Version -lt $dependency.Version) {
                       $dependedPackages = @([pscustomobject]@{
                           Identifier          = $dependency.Identifier
-                          InstallableVersions = @($PackageManifests.($dependency.Identifier).psobject.Properties.Name | Where-Object { $_ -lt $dependency.Version })
+                          InstallableVersions = @($installedPackage.Version)
                         }) + $dependedPackages
                     }
                     else {
@@ -780,7 +780,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
                     if ($installedPackage.Version -le $dependency.Version) {
                       $dependedPackages = @([pscustomobject]@{
                           Identifier          = $dependency.Identifier
-                          InstallableVersions = @($PackageManifests.($dependency.Identifier).psobject.Properties.Name | Where-Object { $_ -le $dependency.Version })
+                          InstallableVersions = @($installedPackage.Version)
                         }) + $dependedPackages
                     }
                     else {
@@ -802,7 +802,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
                     if ($installedPackage.Version -ge $dependency.Version) {
                       $dependedPackages = @([pscustomobject]@{
                           Identifier          = $dependency.Identifier
-                          InstallableVersions = @($PackageManifests.($dependency.Identifier).psobject.Properties.Name | Where-Object { $_ -ge $dependency.Version })
+                          InstallableVersions = @($installedPackage.Version)
                         }) + $dependedPackages
                     }
                     else {
@@ -816,7 +816,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
                     if ($installedPackage.Version -gt $dependency.Version) {
                       $dependedPackages = @([pscustomobject]@{
                           Identifier          = $dependency.Identifier
-                          InstallableVersions = @($PackageManifests.($dependency.Identifier).psobject.Properties.Name | Where-Object { $_ -gt $dependency.Version })
+                          InstallableVersions = @($installedPackage.Version)
                         }) + $dependedPackages
                     }
                     else {
