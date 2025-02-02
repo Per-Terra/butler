@@ -1,7 +1,5 @@
 # BUtler - AviUtl用コマンドラインパッケージマネージャー
 
-[日本語(Japanese)](/README.md) • [English](/docs/README-en.md)
-
 BUtler（バトラーと発音します）はAviUtl用のコマンドラインパッケージマネージャーです。
 
 ## 特徴
