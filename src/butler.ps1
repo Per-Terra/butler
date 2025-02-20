@@ -472,8 +472,8 @@ if ($Command -eq $Commands.list.Key) {
       Description = $manifest.Description
     }
   } |
-  Sort-Object -Property Identifier |
-  Format-Table -AutoSize
+    Sort-Object -Property Identifier |
+    Format-Table -AutoSize
 
   exit 0
 }
@@ -492,25 +492,25 @@ if ($Command -eq $Commands.search.Key) {
   $query = $arguments[1]
 
   $PackageManifests.GetEnumerator() |
-  Where-Object { $_.Key -like "*$query*" -or
+    Where-Object { $_.Key -like "*$query*" -or
   (($_.Value.psobject.Properties | Select-Object -First 1 -ExpandProperty Value).DisplayName -like "*$query*") -or
   (($_.Value.psobject.Properties | Select-Object -First 1 -ExpandProperty Value).Description -like "*$query*")
-  } |
-  ForEach-Object {
-    $latestPackageVersion = $_.Value.psobject.Properties | Select-Object -First 1 -ExpandProperty Name
-    $manifest = $_.Value.$latestPackageVersion
-    [PSCustomObject]@{
-      Identifier  = $_.Key
-      Version     = $latestPackageVersion
-      ReleaseDate = $manifest.ReleaseDate
-      Developer   = $manifest.Developer -join ', '
-      Section     = $manifest.Section
-      DisplayName = $manifest.DisplayName
-      Description = $manifest.Description
-    }
-  } |
-  Sort-Object -Property Identifier |
-  Format-Table -AutoSize
+    } |
+    ForEach-Object {
+      $latestPackageVersion = $_.Value.psobject.Properties | Select-Object -First 1 -ExpandProperty Name
+      $manifest = $_.Value.$latestPackageVersion
+      [PSCustomObject]@{
+        Identifier  = $_.Key
+        Version     = $latestPackageVersion
+        ReleaseDate = $manifest.ReleaseDate
+        Developer   = $manifest.Developer -join ', '
+        Section     = $manifest.Section
+        DisplayName = $manifest.DisplayName
+        Description = $manifest.Description
+      }
+    } |
+    Sort-Object -Property Identifier |
+    Format-Table -AutoSize
 
   exit 0
 }
