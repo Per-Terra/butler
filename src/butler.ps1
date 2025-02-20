@@ -597,8 +597,7 @@ if ($Command -eq $Commands.show.Key) {
 
 function Split-PackageRelationShip {
   param (
-    [Parameter(Mandatory = $true,
-      ValueFromPipeline = $true)]
+    [Parameter(Mandatory, ValueFromPipeline)]
     [string]$Relationship
   )
 
