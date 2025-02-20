@@ -276,6 +276,7 @@ foreach ($dependency in $scriptDependencies) {
   }
 }
 
+Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath './module/ConvertTo-HumanSize.psm1')
 . (Join-Path -Path $PSScriptRoot -ChildPath './lib/Get-Sha256.ps1')
 
 if (-not (Test-Path -LiteralPath $SourcesPath -PathType Leaf)) {
@@ -1092,20 +1093,14 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
     Write-Host
   }
 
-  if ($installedSize -le -1024) {
-    Write-Host "この操作後に $([math]::Abs([math]::Round($installedSize / 1024, 2))) MiB のディスク容量が解放されます"
-  }
-  elseif ($installedSize -lt 0) {
-    Write-Host "この操作後に $([math]::Abs($installedSize)) KiB のディスク容量が解放されます"
+  if ($installedSize -lt 0) {
+    Write-Host "この操作後に $([math]::Abs($installedSize) | ConvertTo-HumanSize) のディスク容量が解放されます"
   }
   elseif ($installedSize -eq 0) {
     Write-Host 'この操作後に追加でディスク容量が消費されることはありません'
   }
-  elseif ($installedSize -lt 1024) {
-    Write-Host "この操作後に追加で $installedSize KiB のディスク容量が消費されます"
-  }
   else {
-    Write-Host "この操作後に追加で $([math]::Round($installedSize / 1024, 2)) MiB のディスク容量が消費されます"
+    Write-Host "この操作後に追加で $($installedSize | ConvertTo-HumanSize) のディスク容量が消費されます"
   }
 
   do {
