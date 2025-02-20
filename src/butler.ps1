@@ -262,26 +262,19 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
 
 # 初期化
 
-### original: https://github.com/microsoft/winget-pkgs/blob/4e76aed0d59412f0be0ecfefabfa14b5df05bec4/Tools/YamlCreate.ps1#L135-L149
-# 必要なモジュールのインストール
+# 依存モジュールのインストール
 $scriptDependencies = @('7Zip4Powershell', 'powershell-yaml')
-$scriptDependencies | ForEach-Object {
-  if (-not (Get-Module -ListAvailable -Name $_)) {
+foreach ($dependency in $scriptDependencies) {
+  if (-not (Get-Module -Name $dependency -ListAvailable)) {
     try {
-      Install-Module -Name $_ -Force -Repository PSGallery -Scope CurrentUser
+      Install-Module -Name $dependency -Force -Repository PSGallery -Scope CurrentUser
     }
     catch {
-      throw "'$_' のインストールに失敗しました"
-    }
-    finally {
-      # Double check that it was installed properly
-      if (-not (Get-Module -ListAvailable -Name $_)) {
-        throw "'$_' が見つかりません"
-      }
+      Write-Error "依存モジュールのインストールに失敗しました: $($_.Exception.Message)"
+      exit 1
     }
   }
 }
-###
 
 . (Join-Path -Path $PSScriptRoot -ChildPath './lib/Get-Sha256.ps1')
 
