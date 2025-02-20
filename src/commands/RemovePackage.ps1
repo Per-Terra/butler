@@ -26,6 +26,10 @@ else {
 . (Join-Path -Path $PSScriptRoot -ChildPath '../lib/Get-Sha256.ps1')
 
 $managedFiles = @(Import-Csv -LiteralPath $ManagedFilesPath)
+# 型アサーション
+$managedFiles | ForEach-Object {
+  $_.IsConfFile = [bool]::Parse($_.IsConfFile)
+}
 $filesToRemove = $managedFiles | Where-Object { $_.Identifier -eq $Identifier }
 
 foreach ($fileToRemove in $filesToRemove) {

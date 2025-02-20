@@ -337,6 +337,10 @@ catch {
   Write-Error $_.ToString()
   exit 1
 }
+# 型アサーション
+$script:managedPackages | ForEach-Object {
+  $_.IsVersionPinned = [bool]::Parse($_.IsVersionPinned)
+}
 
 if ($Command -eq $Commands.update.Key) {
   $SourceUrls | ForEach-Object {
@@ -622,7 +626,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   $dependedPackages = @()
 
   if ($upgrade -and ($arguments.Count -lt 2)) {
-    $specifiedPackages = $script:managedPackages | Where-Object { $_.Status -eq 'Installed' -and $_.IsVersionPinned -ne 'True' } | Select-Object -ExpandProperty Identifier
+    $specifiedPackages = $script:managedPackages | Where-Object { $_.Status -eq 'Installed' -and -not $_.IsVersionPinned } | Select-Object -ExpandProperty Identifier
   }
   else {
     $specifiedPackages = $arguments[1..($arguments.Count - 1)] | Sort-Object -Unique
@@ -753,7 +757,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
           }
           elseif ($installedPackage) {
             if ($dependency.Version) {
-              if ($installedPackage.IsVersionPinned -eq 'True') {
+              if ($installedPackage.IsVersionPinned) {
                 switch ($dependency.Operator) {
                   '<<' {
                     if ($installedPackage.Version -lt $dependency.Version) {

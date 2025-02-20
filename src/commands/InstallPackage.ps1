@@ -23,6 +23,10 @@ Write-Host "$Identifier ($Version) をインストールしています..."
 . (Join-Path -Path $PSScriptRoot -ChildPath '../lib/Get-Sha256.ps1')
 
 $script:managedFiles = @(Import-Csv -LiteralPath $ManagedFilesPath)
+# 型アサーション
+$script:managedFiles | ForEach-Object {
+  $_.IsConfFile = [bool]::Parse($_.IsConfFile)
+}
 
 if (-not $Manifest.Files) {
   return
