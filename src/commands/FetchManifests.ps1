@@ -75,7 +75,7 @@ if ($isCacheAvailable) {
 }
 else {
   $files = @{}
-  $release.Files | ForEach-Object {
+  $release.Files | Where-Object { $_.Name.EndsWith('.gz') } | ForEach-Object {
     $fileUrl = [System.Uri]::new($BaseUrl, $_.Name)
     $cacheFilePath = Join-Path -Path (Split-Path -Path $releasePath -Parent) -ChildPath $_.Name
     try {

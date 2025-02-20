@@ -364,7 +364,7 @@ if (-not $PackageManifests) {
         Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
         exit 1
       }
-      $release.Files | ForEach-Object {
+      $release.Files | Where-Object { $_.Name.EndsWith('.gz') } | ForEach-Object {
         $filePath = Join-Path -Path (Split-Path -Path $releasePath -Parent) -ChildPath $_.Name
         if ($filePath.EndsWith('.gz')) { $filePath = $filePath -replace '\.gz$', '' }
         try {
