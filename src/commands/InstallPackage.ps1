@@ -45,16 +45,16 @@ function Install-File {
   $targetPath = Join-Path -Path $RootDirectory -ChildPath $Install.TargetPath
 
   if (Test-Path -LiteralPath $targetPath -PathType Leaf) {
-    Write-Debug -Message "ファイルが既に存在します: $targetPath"
+    Write-Debug "ファイルが既に存在します: $targetPath"
     $managedFileInfo = $script:managedFiles | Where-Object { $_.Path -eq $Install.TargetPath }
     if ($managedFileInfo) {
       if ($managedFileInfo.IsConfFile) {
-        Write-Debug -Message "ファイルは設定ファイルです: $targetPath"
-        Write-Debug -Message "スキップしました"
+        Write-Debug "ファイルは設定ファイルです: $targetPath"
+        Write-Debug "スキップしました"
         return
       }
       if ($managedFileInfo.Identifier -eq $Identifier -or ($managedFileInfo.Identifier -in $Manifest.Replaces)) {
-        Write-Debug -Message "ファイルを削除しています: $targetPath"
+        Write-Debug "ファイルを削除しています: $targetPath"
         Remove-Item -LiteralPath $targetPath -Force
         $script:managedFiles = $script:managedFiles | Where-Object { $_.Path -ne $Install.TargetPath }
       }
@@ -71,7 +71,7 @@ function Install-File {
         $answer = Read-Host
       } until ([string]::IsNullOrEmpty($answer) -or ($answer -in @('y', 'N')))
       if ($answer -eq 'y') {
-        Write-Debug -Message "ファイルを削除しています: $targetPath"
+        Write-Debug "ファイルを削除しています: $targetPath"
         Remove-Item -LiteralPath $targetPath -Force
       }
       else {
@@ -85,11 +85,11 @@ function Install-File {
     $null = New-Item -Path (Split-Path -Path $targetPath -Parent) -ItemType Directory
   }
   if ($NoSymbolicLink -or ($Install.Method -eq 'Copy') -or $Install.ConfFile) {
-    Write-Debug -Message "ファイルをコピーしています: $targetPath"
+    Write-Debug "ファイルをコピーしています: $targetPath"
     $null = Copy-Item -LiteralPath $SourcePath -Destination $targetPath -Force
   }
   else {
-    Write-Debug -Message "シンボリックリンクを作成しています: $targetPath"
+    Write-Debug "シンボリックリンクを作成しています: $targetPath"
     $null = New-Item -Path $targetPath -ItemType SymbolicLink -Value (Resolve-Path -LiteralPath $SourcePath -Relative -RelativeBasePath (Split-Path -Path $targetPath -Parent)) -Force
   }
 
@@ -113,12 +113,12 @@ function Install-Archive {
   $expandDirectory = Join-Path -Path $PackageDirectory -ChildPath (Split-Path -Path $SourcePath -Leaf)
 
   if (Test-Path -LiteralPath $expandDirectory -PathType Container) {
-    Write-Debug -Message "展開済みのアーカイブが存在します: $expandDirectory"
+    Write-Debug "展開済みのアーカイブが存在します: $expandDirectory"
     try {
       Remove-Item -LiteralPath $expandDirectory -Force -Recurse
     }
     catch {
-      Write-Error -Message "ディレクトリの削除に失敗しました: $expandDirectory"
+      Write-Error "ディレクトリの削除に失敗しました: $expandDirectory"
       throw
     }
   }
@@ -127,7 +127,7 @@ function Install-Archive {
     Expand-7Zip -ArchiveFileName $SourcePath -TargetPath $expandDirectory
   }
   catch {
-    Write-Error -Message "アーカイブの展開に失敗しました: $SourcePath"
+    Write-Error "アーカイブの展開に失敗しました: $SourcePath"
     throw
   }
 
@@ -135,7 +135,7 @@ function Install-Archive {
     $sourcePath = Join-Path -Path $expandDirectory -ChildPath $file.Path
     $sha256 = $sourcePath | Get-Sha256
     if ($sha256 -ne $file.Sha256) {
-      Write-Error -Message "ファイルのハッシュ値が一致しません: $sourcePath"
+      Write-Error "ファイルのハッシュ値が一致しません: $sourcePath"
       throw
     }
     if ($file.Files) {
@@ -163,12 +163,12 @@ foreach ($sourceFile in $Manifest.Files) {
       $isCacheAvailable = $true
     }
     else {
-      Write-Debug -Message "ファイルのハッシュ値が一致しません: $cacheFilePath"
+      Write-Debug "ファイルのハッシュ値が一致しません: $cacheFilePath"
       $isCacheAvailable = $false
     }
   }
   else {
-    Write-Debug -Message "キャッシュが存在しません: $cacheFilePath"
+    Write-Debug "キャッシュが存在しません: $cacheFilePath"
   }
 
   if (-not $isCacheAvailable) {
@@ -184,18 +184,18 @@ foreach ($sourceFile in $Manifest.Files) {
     }
 
     try {
-      Write-Debug -Message "ファイルをダウンロードしています: $($sourceUrl.AbsoluteUri)"
+      Write-Debug "ファイルをダウンロードしています: $($sourceUrl.AbsoluteUri)"
       Invoke-WebRequest @params
     }
     catch {
-      Write-Error -Message $_.ToString()
-      Write-Error -Message "ファイルのダウンロードに失敗しました: $($sourceUrl.AbsoluteUri)"
+      Write-Error $_.ToString()
+      Write-Error "ファイルのダウンロードに失敗しました: $($sourceUrl.AbsoluteUri)"
       throw
     }
 
     $sha256 = $cacheFilePath | Get-Sha256
     if ($sha256 -ne $sourceFile.Sha256) {
-      Write-Error -Message "ファイルのハッシュ値が一致しません: $cacheFilePath"
+      Write-Error "ファイルのハッシュ値が一致しません: $cacheFilePath"
       throw
     }
   }
@@ -214,6 +214,6 @@ try {
   (($script:managedFiles | ConvertTo-Csv -NoTypeInformation -QuoteFields 'Path') -join "`n") + "`n" | Set-Content -LiteralPath $ManagedFilesPath -Force -NoNewline
 }
 catch {
-  Write-Error -Message "ファイルの書き込みに失敗しました: $ManagedFilesPath"
+  Write-Error "ファイルの書き込みに失敗しました: $ManagedFilesPath"
   throw
 }

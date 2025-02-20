@@ -32,23 +32,23 @@ foreach ($fileToRemove in $filesToRemove) {
   $path = Join-Path -Path $RootDirectory -ChildPath $fileToRemove.Path
   if (Test-Path -LiteralPath $path -PathType Leaf) {
     if ($Purge -or (-not $fileToRemove.IsConfFile)) {
-      Write-Debug -Message "ファイルを削除しています: $path"
+      Write-Debug "ファイルを削除しています: $path"
       Remove-Item -LiteralPath $path -Force
     }
     else {
       $sha256 = $path | Get-Sha256
       if ($sha256 -eq $fileToRemove.Sha256) {
-        Write-Debug -Message "ファイルを削除しています: $path"
+        Write-Debug "ファイルを削除しています: $path"
         Remove-Item -LiteralPath $path -Force
       }
       else {
-        Write-Debug -Message "ファイルは変更されています: $path"
+        Write-Debug "ファイルは変更されています: $path"
         continue
       }
     }
   }
   else {
-    Write-Debug -Message "ファイルが存在しません: $path"
+    Write-Debug "ファイルが存在しません: $path"
   }
   $managedFiles = $managedFiles | Where-Object { $_.Path -ne $fileToRemove.Path }
 }
@@ -58,11 +58,11 @@ if ($Purge) {
     foreach ($confFile in $Manifest.ConfFiles) {
       $path = Join-Path -Path $RootDirectory -ChildPath $confFile
       if (Test-Path -LiteralPath $path -PathType Leaf) {
-        Write-Debug -Message "ファイルを削除しています: $path"
+        Write-Debug "ファイルを削除しています: $path"
         Remove-Item -LiteralPath $path -Force
       }
       else {
-        Write-Debug -Message "ファイルが存在しません: $path"
+        Write-Debug "ファイルが存在しません: $path"
       }
     }
   }
@@ -73,18 +73,18 @@ if (Test-Path -LiteralPath $PackageDirectory -PathType Container) {
     Remove-Item -LiteralPath $PackageDirectory -Force -Recurse
   }
   catch {
-    Write-Error -Message "ディレクトリの削除に失敗しました: $PackageDirectory"
+    Write-Error "ディレクトリの削除に失敗しました: $PackageDirectory"
   }
 }
 
-Write-Debug -Message "空のディレクトリを削除しています: $RootDirectory"
+Write-Debug "空のディレクトリを削除しています: $RootDirectory"
 Get-ChildItem -LiteralPath $RootDirectory -Recurse -Force -Directory | Sort-Object -Descending | ForEach-Object {
   if ((Get-ChildItem -LiteralPath $_.FullName -Force).Count -eq 0) {
     try {
       Remove-Item -LiteralPath $_.FullName -Force
     }
     catch {
-      Write-Error -Message "ディレクトリの削除に失敗しました: $($_.FullName)"
+      Write-Error "ディレクトリの削除に失敗しました: $($_.FullName)"
     }
   }
 }
@@ -93,5 +93,5 @@ try {
   (($managedFiles | ConvertTo-Csv -NoTypeInformation -QuoteFields 'Path') -join "`n") + "`n" | Set-Content -LiteralPath $ManagedFilesPath -Force -NoNewline
 }
 catch {
-  Write-Error -Message "ファイルの書き込みに失敗しました: $ManagedFilesPath"
+  Write-Error "ファイルの書き込みに失敗しました: $ManagedFilesPath"
 }

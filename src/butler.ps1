@@ -97,7 +97,7 @@ if (-not $Config) {
       $Config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Yaml
     }
     catch {
-      Write-Error -Message $_.ToString()
+      Write-Error $_.ToString()
       Write-Host -ForegroundColor Red "$ConfigPath の読み込めません"
       Write-Host -ForegroundColor Red 'デフォルトの設定でで続行します'
     }
@@ -191,7 +191,7 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
   }
   catch {
     Write-Host ' 失敗'
-    Write-Error -Message $_.ToString()
+    Write-Error $_.ToString()
     exit 1
   }
 
@@ -225,7 +225,7 @@ if ($Command -in $Commands.selfupdate.Key, $Commands.selfupgrade.Key) {
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile
   }
   catch {
-    Write-Error -Message $_.ToString()
+    Write-Error $_.ToString()
     Write-Host ' 失敗'
     Read-Host -Prompt 'Enterキーを押して終了します...'
     exit 1
@@ -300,7 +300,7 @@ try {
   $SourceUrls = [System.Uri[]](Get-Content -LiteralPath $SourcesPath -Raw | ConvertFrom-Yaml)
 }
 catch {
-  Write-Error -Message $_.ToString()
+  Write-Error $_.ToString()
   exit 1
 }
 
@@ -340,7 +340,7 @@ try {
   $script:managedPackages = @(Import-Csv -LiteralPath $ManagedPackagesPath)
 }
 catch {
-  Write-Error -Message $_.ToString()
+  Write-Error $_.ToString()
   exit 1
 }
 
@@ -364,7 +364,7 @@ if (-not $PackageManifests) {
         $release = Get-Item -LiteralPath $releasePath | Get-Content -Raw | ConvertFrom-Yaml
       }
       catch {
-        Write-Error -Message $_.ToString()
+        Write-Error $_.ToString()
         Write-Host ' 失敗'
         Write-Host -ForegroundColor Red "release.yaml を読み込めません: $releasePath"
         Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
@@ -378,14 +378,14 @@ if (-not $PackageManifests) {
         }
         catch {
           Write-Host ' 失敗'
-          Write-Error -Message $_.ToString()
+          Write-Error $_.ToString()
           Write-Host -ForegroundColor Red "ファイルを読み込めません: $filePath"
           Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
           exit 1
         }
         if (-not $file) {
           Write-Host ' 失敗'
-          Write-Error -Message $_.ToString()
+          Write-Error $_.ToString()
           Write-Host -ForegroundColor Red "ファイルを読み込めません: $filePath"
           Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
           exit 1
@@ -402,7 +402,7 @@ if (-not $PackageManifests) {
     }
     else {
       Write-Host ' 失敗'
-      Write-Error -Message $_.ToString()
+      Write-Error $_.ToString()
       Write-Host -ForegroundColor Red "release.yaml が見つかりません: $releasePath"
       Write-Host -ForegroundColor Red 'update コマンドを実行してから再度お試しください'
       exit 1
@@ -675,7 +675,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
     }
   }
 
-  Write-Host '依存関係を解決しています...' -NoNewline
+  Write-Host -NoNewline '依存関係を解決しています...'
 
   do {
     $script:isDependencyResolved = $true
@@ -1011,7 +1011,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
   foreach ($dependency in $dependedPackages) {
     $installedPackage = $script:managedPackages | Where-Object { $_.Identifier -eq $dependency.Identifier -and ($_.Status -eq 'Installed') } | Select-Object -First 1
     if ($installedPackage.Version -eq $dependency.InstallableVersions[0]) {
-      Write-Debug -Message "依存パッケージは既に最新バージョンです: $($dependency.Identifier) ($($dependency.InstallableVersions[0]))"
+      Write-Debug "依存パッケージは既に最新バージョンです: $($dependency.Identifier) ($($dependency.InstallableVersions[0]))"
       $dependedPackages = @($dependedPackages | Where-Object { $_.Identifier -ne $dependency.Identifier })
     }
   }
@@ -1215,7 +1215,7 @@ if ($Command -in $Commands.install.Key, $Commands.upgrade.Key) {
     (($script:managedPackages | ConvertTo-Csv -NoTypeInformation -UseQuotes Never) -join "`n") + "`n" | Set-Content -LiteralPath $ManagedPackagesPath -Force -NoNewline
   }
   catch {
-    Write-Error -Message $_.ToString()
+    Write-Error $_.ToString()
     throw "ファイルの書き込みに失敗しました: $ManagedPackagesPath"
   }
 
@@ -1395,7 +1395,7 @@ if ($Command -in $Commands.remove.Key, $Commands.purge.Key, $Commands.autoremove
     (($script:managedPackages | ConvertTo-Csv -NoTypeInformation -UseQuotes Never) -join "`n") + "`n" | Set-Content -LiteralPath $ManagedPackagesPath -Force -NoNewline
   }
   catch {
-    Write-Error -Message $_.ToString()
+    Write-Error $_.ToString()
     throw "ファイルの書き込みに失敗しました: $ManagedPackagesPath"
   }
 

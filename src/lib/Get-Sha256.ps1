@@ -7,11 +7,11 @@ filter Get-Sha256 {
   )
 
   $Path | ForEach-Object {
-    Write-Debug -Message "ファイルのSHA256ハッシュ値を計算しています: $_"
+    Write-Debug "ファイルのSHA256ハッシュ値を計算しています: $_"
     if (Test-Path -LiteralPath $_) {
       try {
         $hash = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLower()
-        Write-Debug -Message "ファイルのSHA256ハッシュ値を計算しました: $hash"
+        Write-Debug "ファイルのSHA256ハッシュ値を計算しました: $hash"
         return $hash
       }
       catch {

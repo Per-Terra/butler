@@ -25,9 +25,9 @@ if (Test-Path -LiteralPath $releasePath -PathType Leaf) {
     $cachedRelease = Get-Item -LiteralPath $releasePath | Get-Content -Raw | ConvertFrom-Yaml
   }
   catch {
-    Write-Warning -Message "キャッシュの読み込みに失敗しました: $releasePath"
-    Write-Warning -Message $_.ToString()
-    Write-Warning -Message 'キャッシュを使用せずに続行します'
+    Write-Warning "キャッシュの読み込みに失敗しました: $releasePath"
+    Write-Warning $_.ToString()
+    Write-Warning 'キャッシュを使用せずに続行します'
   }
 }
 elseif (-not (Test-Path -LiteralPath (Split-Path -Path $releasePath -Parent) -PathType Container)) {
@@ -38,8 +38,8 @@ try {
   $release = Invoke-WebRequest -Uri $ReleaseUrl -OutFile $releasePath -PassThru | ConvertFrom-Yaml
 }
 catch {
-  Write-Error -Message "リリースの取得に失敗しました: $ReleaseUrl"
-  Write-Error -Message $_.ToString()
+  Write-Error "リリースの取得に失敗しました: $ReleaseUrl"
+  Write-Error $_.ToString()
   exit 1
 }
 
@@ -54,12 +54,12 @@ if ($cachedRelease -and ([datetime]$cachedRelease.Date -ge [datetime]$release.Da
         $isCacheAvailable = $true
       }
       else {
-        Write-Debug -Message "ファイルのハッシュ値が一致しません: $cachedFilePath"
+        Write-Debug "ファイルのハッシュ値が一致しません: $cachedFilePath"
         $isCacheAvailable = $false
       }
     }
     else {
-      Write-Debug -Message "ファイルが存在しません: $cachedFilePath"
+      Write-Debug "ファイルが存在しません: $cachedFilePath"
       $isCacheAvailable = $false
     }
   }
@@ -82,15 +82,15 @@ else {
       $file = (Invoke-WebRequest -Uri $fileUrl -OutFile $cacheFilePath -PassThru).Content
     }
     catch {
-      Write-Error -Message "ファイルの取得に失敗しました: $fileUrl"
-      Write-Error -Message $_.ToString()
+      Write-Error "ファイルの取得に失敗しました: $fileUrl"
+      Write-Error $_.ToString()
       exit 1
     }
     $sha256 = [System.Security.Cryptography.SHA256]::Create()
     $sha256Bytes = $sha256.ComputeHash($file)
     $sha256String = [System.BitConverter]::ToString($sha256Bytes).Replace('-', '').ToLower()
     if ($sha256String -ne $_.Sha256) {
-      Write-Error -Message "ファイルのハッシュ値が一致しません: $fileUrl"
+      Write-Error "ファイルのハッシュ値が一致しません: $fileUrl"
       exit 1
     }
     $files.Add($_.Name, $file)

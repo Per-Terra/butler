@@ -12,7 +12,7 @@ if (-not $Version) {
   }
   catch {
     Write-Host ' 失敗'
-    Write-Error -Message $_.ToString()
+    Write-Error $_.ToString()
     Write-Host 'Enterキーを押して終了します...'
     Read-Host
     exit 1
@@ -53,7 +53,7 @@ try {
   Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile
 }
 catch {
-  Write-Error -Message $_.ToString()
+  Write-Error $_.ToString()
   Write-Host ' 失敗'
   Read-Host -Prompt 'Enterキーを押して終了します...'
   exit 1
