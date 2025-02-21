@@ -89,6 +89,9 @@ $Command = $arguments[0]
 if (-not $Command) {
   $Command = $Commands.interactive.Key
 }
+# Remove-Itemの進捗状況バーが消えない問題に対するワークアラウンド
+# ref: https://github.com/PowerShell/PowerShell/issues/23875
+$PSDefaultParameterValues['Remove-Item:ProgressAction'] = 'SilentlyContinue'
 
 # 対話型シェルの動作に必要なのでconfigだけはここで読み込む
 if (-not $Config) {

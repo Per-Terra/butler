@@ -18,6 +18,10 @@ param (
   [switch]$NoSymbolicLink
 )
 
+# Remove-Itemの進捗状況バーが消えない問題に対するワークアラウンド
+# ref: https://github.com/PowerShell/PowerShell/issues/23875
+$PSDefaultParameterValues['Remove-Item:ProgressAction'] = 'SilentlyContinue'
+
 Write-Host "$Identifier ($Version) をインストールしています..."
 
 . (Join-Path -Path $PSScriptRoot -ChildPath '../lib/Get-Sha256.ps1')

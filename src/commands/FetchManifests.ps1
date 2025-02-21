@@ -4,6 +4,10 @@ param (
   [System.Uri]$BaseUrl = [System.Uri]::new('https://github.com/Per-Terra/butler-pkgs/releases/latest/download/')
 )
 
+# Remove-Itemの進捗状況バーが消えない問題に対するワークアラウンド
+# ref: https://github.com/PowerShell/PowerShell/issues/23875
+$PSDefaultParameterValues['Remove-Item:ProgressAction'] = 'SilentlyContinue'
+
 . (Join-Path -Path $PSScriptRoot -ChildPath '../lib/Get-Sha256.ps1')
 
 $ReleaseUrl = [System.Uri]::new($BaseUrl, './release.yaml')

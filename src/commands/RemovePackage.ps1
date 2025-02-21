@@ -16,6 +16,10 @@ param (
   [switch]$Purge
 )
 
+# Remove-Itemの進捗状況バーが消えない問題に対するワークアラウンド
+# ref: https://github.com/PowerShell/PowerShell/issues/23875
+$PSDefaultParameterValues['Remove-Item:ProgressAction'] = 'SilentlyContinue'
+
 if ($Purge) {
   Write-Host "$Identifier ($Version) を完全に削除しています..."
 }
